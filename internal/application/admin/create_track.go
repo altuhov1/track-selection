@@ -1,1 +1,1 @@
-package admin
+package app_admin

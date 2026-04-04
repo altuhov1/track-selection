@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	"track-selection/internal/bootstrap"
 	"track-selection/internal/config"
 )
 
@@ -14,7 +15,6 @@ func main() {
 	})
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
-	slog.SetDefault(logger)
-	app := app.NewApp(cfg)
+	app := bootstrap.NewApp(cfg)
 	app.Run()
 }

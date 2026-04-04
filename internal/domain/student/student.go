@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"track-selection/internal/domain/shared/value_objects"
 )
 
 type Student struct {
 	id        StudentID
-	email     Email
+	email     value_objects.Email
 	username  string
 	createdAt time.Time
 	updatedAt time.Time
@@ -25,7 +27,7 @@ func NewStudent(emailStr string, username string) (*Student, error) {
 		return nil, errors.New("username must be at least 3 characters")
 	}
 
-	email, err := NewEmail(emailStr)
+	email, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email: %w", err)
 	}
@@ -45,7 +47,7 @@ func (s *Student) ID() StudentID {
 	return s.id
 }
 
-func (s *Student) Email() Email {
+func (s *Student) Email() value_objects.Email {
 	return s.email
 }
 

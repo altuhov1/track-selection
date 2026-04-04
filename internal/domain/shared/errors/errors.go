@@ -1,4 +1,4 @@
-package shared
+package errors
 
 import "errors"
 
@@ -7,4 +7,5 @@ var (
 	ErrInvalidEmail  = errors.New("invalid email address")
 	ErrUnauthorized  = errors.New("unauthorized")
 	ErrAlreadyExists = errors.New("entity already exists")
+	ErrInvalidRole   = errors.New("we have not this role")
 )

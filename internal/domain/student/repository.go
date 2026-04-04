@@ -1,9 +1,12 @@
 package student
 
-import "context"
+import (
+	"context"
+	"track-selection/internal/domain/shared/value_objects"
+)
 
 type Repository interface {
 	Save(ctx context.Context, student *Student) error
 	FindByID(ctx context.Context, id StudentID) (*Student, error)
-	FindByEmail(ctx context.Context, email Email) (*Student, error)
+	FindByEmail(ctx context.Context, email value_objects.Email) (*Student, error)
 }
