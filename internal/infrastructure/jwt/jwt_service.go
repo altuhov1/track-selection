@@ -19,7 +19,7 @@ type JWTServiceImpl struct {
 	expiration time.Duration
 }
 
-func NewJWTService(config JWTConfig) auth.JWTService {
+func NewJWTService(config *JWTConfig) auth.JWTService {
 	return &JWTServiceImpl{
 		secret:     config.Secret,
 		expiration: config.Expiration,

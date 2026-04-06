@@ -8,11 +8,13 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"track-selection/internal/application/student"
+	"track-selection/internal/application/auth"
+	authApp "track-selection/internal/application/auth"
 	"track-selection/internal/config"
-	"track-selection/internal/domain/shared/auth"
+	authDomain "track-selection/internal/domain/auth"
 	"track-selection/internal/domain/shared/events"
 	"track-selection/internal/infrastructure/eventbus"
+	authEventBus "track-selection/internal/infrastructure/eventbus/subscribers/auth"
 	"track-selection/internal/infrastructure/http/handlers"
 	"track-selection/internal/infrastructure/http/middleware"
 	"track-selection/internal/infrastructure/jwt"
@@ -38,7 +40,7 @@ type Infrastructure struct {
 	AuthRepo *postgres.AuthRepository
 
 	// Технические сервисы
-	JwtService *auth.JWTService
+	JwtService authDomain.JWTService
 
 	// БД пул
 	DB *pgxpool.Pool
@@ -47,18 +49,8 @@ type Infrastructure struct {
 // UseCases — только бизнес-сценарии (координация)
 type UseCases struct {
 	// Auth Use Cases
-	RegisterUC *auth.RegisterUseCase
-	LoginUC    *auth.LoginUseCase
-
-	// Student Use Cases
-	SelectTrackUC        *student.SelectTrackUseCase
-	UpdateProfileUC      *student.UpdateProfileUseCase
-	GetRecommendationsUC *student.GetRecommendationsUseCase
-
-	// Admin Use Cases
-	CreateTrackUC *admin.CreateTrackUseCase
-	UpdateTrackUC *admin.UpdateTrackUseCase
-	DeleteTrackUC *admin.DeleteTrackUseCase
+	RegisterUC *authApp.RegisterUseCase
+	LoginUC    *authApp.LoginUseCase
 }
 
 func NewApp(cfg *config.ConfigApp) *App {
@@ -100,10 +92,6 @@ func (a *App) initInfrastructure() {
 
 	// 2. Репозитории
 	a.infra.AuthRepo = postgres.NewAuthRepository(poolPG)
-	a.infra.StudentRepo = postgres.NewStudentRepository(poolPG)
-	a.infra.AdminRepo = postgres.NewAdminRepository(poolPG)
-	a.infra.TrackRepo = postgres.NewTrackRepository(poolPG)
-	a.infra.SelectionRepo = postgres.NewSelectionRepository(poolPG)
 	slog.Info("Repositories initialized")
 
 	// 3. JWT сервис
@@ -121,7 +109,10 @@ func (a *App) initInfrastructure() {
 // initEventBus — инициализация шины событий
 func (a *App) initEventBus() {
 	a.eventBus = eventbus.NewMemoryBus()
-	slog.Info("EventBus initialized")
+	// Подписываем обработчики
+	createStudentHandler := authEventBus.NewCreateStudentHandler(a.infra.StudentRepo)
+	a.eventBus.Subscribe("user.registered", createStudentHandler)
+
 }
 
 // initUseCases — инициализация всех Use Case'ов
@@ -137,41 +128,6 @@ func (a *App) initUseCases() {
 	a.useCases.LoginUC = auth.NewLoginUseCase(
 		a.infra.AuthRepo,
 		a.infra.JwtService,
-	)
-
-	// Student Use Cases
-	a.useCases.SelectTrackUC = student.NewSelectTrackUseCase(
-		a.infra.StudentRepo,
-		a.infra.TrackRepo,
-		a.infra.SelectionRepo,
-		a.eventBus,
-	)
-
-	a.useCases.UpdateProfileUC = student.NewUpdateProfileUseCase(
-		a.infra.StudentRepo,
-		a.eventBus,
-	)
-
-	a.useCases.GetRecommendationsUC = student.NewGetRecommendationsUseCase(
-		a.infra.StudentRepo,
-		a.infra.TrackRepo,
-		a.infra.SelectionRepo,
-	)
-
-	// Admin Use Cases
-	a.useCases.CreateTrackUC = admin.NewCreateTrackUseCase(
-		a.infra.TrackRepo,
-		a.eventBus,
-	)
-
-	a.useCases.UpdateTrackUC = admin.NewUpdateTrackUseCase(
-		a.infra.TrackRepo,
-		a.eventBus,
-	)
-
-	a.useCases.DeleteTrackUC = admin.NewDeleteTrackUseCase(
-		a.infra.TrackRepo,
-		a.eventBus,
 	)
 
 	slog.Info("Use Cases initialized")
