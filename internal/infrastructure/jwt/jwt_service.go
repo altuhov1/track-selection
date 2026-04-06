@@ -3,7 +3,7 @@ package jwt
 import (
 	"time"
 
-	"track-selection/internal/domain/shared/auth"
+	"track-selection/internal/domain/auth"
 	"track-selection/internal/domain/shared/errors"
 
 	"github.com/golang-jwt/jwt/v5"

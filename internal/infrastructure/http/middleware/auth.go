@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"track-selection/internal/domain/shared/auth"
+	"track-selection/internal/domain/auth"
 )
 
 const (

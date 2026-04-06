@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	"track-selection/internal/domain/shared/auth"
+	"track-selection/internal/domain/auth"
 	"track-selection/internal/domain/shared/errors"
 	"track-selection/internal/domain/shared/value_objects"
 )
