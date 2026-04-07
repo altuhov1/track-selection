@@ -46,7 +46,9 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*LoginOu
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
-
+	if authUser == nil {
+		return nil, errors.ErrUnauthorized
+	}
 	// 3. Проверяем пароль (бизнес-логика внутри AuthUser)
 	if !authUser.CheckPassword(input.Password) {
 		return nil, errors.ErrUnauthorized

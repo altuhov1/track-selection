@@ -3,6 +3,7 @@ package eventbus
 import (
 	"context"
 	"sync"
+	"time"
 	"track-selection/internal/domain/shared/events"
 )
 
@@ -30,10 +31,16 @@ func (bus *MemoryEventBus) Publish(ctx context.Context, event events.DomainEvent
 	handlers := bus.handlers[event.GetEventType()]
 	bus.mu.RUnlock()
 
-	// Вызываем всех подписчиков асинхронно
 	for _, handler := range handlers {
 		go func(h events.EventHandler) {
-			h.Handle(ctx, event)
+
+			bgCtx := context.WithoutCancel(ctx)
+
+			// Добавляем свой таймаут для безопасности
+			timeoutCtx, cancel := context.WithTimeout(bgCtx, 30*time.Second)
+			defer cancel()
+
+			h.Handle(timeoutCtx, event)
 		}(handler)
 	}
 

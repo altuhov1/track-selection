@@ -20,7 +20,7 @@ func NewUserRegisteredEvent(userID, email, role string) UserRegisteredEvent {
 	return UserRegisteredEvent{
 		BaseDomainEvent: BaseDomainEvent{
 			EventID:    uuid.New().String(),
-			EventType:  "user.registered",
+			EventType:  "student.registered",
 			OccurredAt: time.Now(),
 		},
 		UserID: userID,

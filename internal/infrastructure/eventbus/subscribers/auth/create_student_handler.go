@@ -28,6 +28,5 @@ func (h *CreateStudentHandler) Handle(ctx context.Context, event events.DomainEv
 	if err != nil {
 		return err
 	}
-
 	return h.studentRepo.Save(ctx, student)
 }

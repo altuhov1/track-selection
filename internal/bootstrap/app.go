@@ -39,6 +39,8 @@ type Infrastructure struct {
 	// Репозитории (работа с БД)
 	AuthRepo *postgres.AuthRepository
 
+	StudentRepo *postgres.StudentRepository
+
 	// Технические сервисы
 	JwtService authDomain.JWTService
 
@@ -94,6 +96,9 @@ func (a *App) initInfrastructure() {
 	a.infra.AuthRepo = postgres.NewAuthRepository(poolPG)
 	slog.Info("Repositories initialized")
 
+	a.infra.StudentRepo = postgres.NewStudentRepository(poolPG)
+	slog.Info("Repositories initialized")
+
 	// 3. JWT сервис
 	if a.cfg.Jwt_secret_key == "" {
 		slog.Error("JWT secret key is required")
@@ -111,7 +116,7 @@ func (a *App) initEventBus() {
 	a.eventBus = eventbus.NewMemoryBus()
 	// Подписываем обработчики
 	createStudentHandler := authEventBus.NewCreateStudentHandler(a.infra.StudentRepo)
-	a.eventBus.Subscribe("user.registered", createStudentHandler)
+	a.eventBus.Subscribe("student.registered", createStudentHandler)
 
 }
 
@@ -120,8 +125,6 @@ func (a *App) initUseCases() {
 	// Auth Use Cases
 	a.useCases.RegisterUC = auth.NewRegisterUseCase(
 		a.infra.AuthRepo,
-		a.infra.StudentRepo,
-		a.infra.AdminRepo,
 		a.eventBus,
 	)
 
@@ -136,15 +139,8 @@ func (a *App) initUseCases() {
 // initHTTP — инициализация HTTP сервера и маршрутов
 func (a *App) initHTTP() {
 	handler := handlers.NewHandler(
-		a.infra.JwtService,
 		a.useCases.RegisterUC,
 		a.useCases.LoginUC,
-		a.useCases.SelectTrackUC,
-		a.useCases.UpdateProfileUC,
-		a.useCases.GetRecommendationsUC,
-		a.useCases.CreateTrackUC,
-		a.useCases.UpdateTrackUC,
-		a.useCases.DeleteTrackUC,
 	)
 
 	router := a.setupRoutes(handler)
@@ -163,7 +159,6 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	r := mux.NewRouter()
 
 	// Публичные эндпоинты (без аутентификации)
-	r.HandleFunc("/_info", handler.TestHandler).Methods(http.MethodGet)
 	r.HandleFunc("/register", handler.Register).Methods(http.MethodPost)
 	r.HandleFunc("/login", handler.Login).Methods(http.MethodPost)
 

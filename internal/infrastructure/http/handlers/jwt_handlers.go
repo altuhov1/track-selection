@@ -12,20 +12,13 @@ type AuthHandler struct {
 	loginUC    *auth.LoginUseCase
 }
 
-func NewAuthHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase) *AuthHandler {
-	return &AuthHandler{
-		registerUC: registerUC,
-		loginUC:    loginUC,
-	}
-}
-
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
 }
 
-func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
@@ -74,7 +67,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())

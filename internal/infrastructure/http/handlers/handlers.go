@@ -3,13 +3,19 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"track-selection/internal/application/auth"
 )
 
 type Handler struct {
+	registerUC *auth.RegisterUseCase
+	loginUC    *auth.LoginUseCase
 }
 
-func NewHandler() (*Handler, error) {
-	return &Handler{}, nil
+func NewHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase) *Handler {
+	return &Handler{
+		registerUC: registerUC,
+		loginUC:    loginUC,
+	}
 }
 
 func sendJSON(w http.ResponseWriter, status int, data interface{}) {
