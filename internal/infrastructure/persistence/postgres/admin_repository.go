@@ -5,25 +5,25 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"track-selection/internal/domain/admin"
 	"track-selection/internal/domain/shared/value_objects"
-	"track-selection/internal/domain/student"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type StudentRepository struct {
+type AdminRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewStudentRepository(pool *pgxpool.Pool) *StudentRepository {
-	return &StudentRepository{pool: pool}
+func NewAdminRepository(pool *pgxpool.Pool) *AdminRepository {
+	return &AdminRepository{pool: pool}
 }
 
 // Save сохраняет или обновляет студента
-func (r *StudentRepository) Save(ctx context.Context, s *student.Student) error {
+func (r *AdminRepository) Save(ctx context.Context, s *admin.Admin) error {
 	query := `
-        INSERT INTO students (id, auth_user_id, email, username, rating, created_at, updated_at)
+        INSERT INTO admins (id, auth_user_id, email, username, rating, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (id) DO UPDATE SET
             email = EXCLUDED.email,
@@ -41,19 +41,19 @@ func (r *StudentRepository) Save(ctx context.Context, s *student.Student) error 
 		s.CreatedAt(),
 		s.UpdatedAt(),
 	)
-	
+	fmt.Println(err)
 	if err != nil {
-		return fmt.Errorf("failed to save student: %w", err)
+		return fmt.Errorf("failed to save admin: %w", err)
 	}
 
 	return nil
 }
 
 // FindByID находит студента по ID
-func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) (*student.Student, error) {
+func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admin.Admin, error) {
 	query := `
         SELECT id, auth_user_id, email, username, rating, created_at, updated_at
-        FROM students
+        FROM admins
         WHERE id = $1
     `
 
@@ -80,7 +80,7 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to find student by id: %w", err)
+		return nil, fmt.Errorf("failed to find admin by id: %w", err)
 	}
 
 	// Парсим Email
@@ -89,15 +89,14 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 		return nil, fmt.Errorf("invalid email in database: %w", err)
 	}
 
-	// Парсим StudentID
-	studentID, err := student.StudentIDFromString(idStr)
+	adminID, err := admin.AdminIDFromString(idStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid student id in database: %w", err)
+		return nil, fmt.Errorf("invalid admin id in database: %w", err)
 	}
 
 	// Создаем студента через конструктор для восстановления из БД
-	return student.NewStudentFromDB(
-		studentID,
+	return admin.NewAdminFromDB(
+		adminID,
 		authUserID,
 		email,
 		username,
@@ -108,10 +107,10 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 }
 
 // FindByEmail находит студента по email
-func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects.Email) (*student.Student, error) {
+func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.Email) (*admin.Admin, error) {
 	query := `
         SELECT id, auth_user_id, email, username, rating, created_at, updated_at
-        FROM students
+        FROM admins
         WHERE email = $1
     `
 
@@ -138,13 +137,13 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to find student by email: %w", err)
+		return nil, fmt.Errorf("failed to find admin by email: %w", err)
 	}
 
-	// Парсим StudentID
-	studentID, err := student.StudentIDFromString(idStr)
+	// Парсим AdminID
+	adminID, err := admin.AdminIDFromString(idStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid student id in database: %w", err)
+		return nil, fmt.Errorf("invalid admin id in database: %w", err)
 	}
 
 	// Email уже есть, но для консистенции парсим заново
@@ -153,8 +152,8 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 		return nil, fmt.Errorf("invalid email in database: %w", err)
 	}
 
-	return student.NewStudentFromDB(
-		studentID,
+	return admin.NewAdminFromDB(
+		adminID,
 		authUserID,
 		parsedEmail,
 		username,
@@ -164,11 +163,11 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 	), nil
 }
 
-// FindByAuthStudentID находит студента по ID учетной записи
-func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID string) (*student.Student, error) {
+// FindByAuthAdminID находит студента по ID учетной записи
+func (r *AdminRepository) FindByAuthAdminID(ctx context.Context, authUserID string) (*admin.Admin, error) {
 	query := `
         SELECT id, auth_user_id, email, username, rating, created_at, updated_at
-        FROM students
+        FROM admins
         WHERE auth_user_id = $1
     `
 
@@ -195,12 +194,12 @@ func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to find student by auth_user_id: %w", err)
+		return nil, fmt.Errorf("failed to find admin by auth_user_id: %w", err)
 	}
 
-	studentID, err := student.StudentIDFromString(idStr)
+	adminID, err := admin.AdminIDFromString(idStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid student id in database: %w", err)
+		return nil, fmt.Errorf("invalid admin id in database: %w", err)
 	}
 
 	parsedEmail, err := value_objects.NewEmail(emailStr)
@@ -208,8 +207,8 @@ func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID 
 		return nil, fmt.Errorf("invalid email in database: %w", err)
 	}
 
-	return student.NewStudentFromDB(
-		studentID,
+	return admin.NewAdminFromDB(
+		adminID,
 		authUserIDOut,
 		parsedEmail,
 		username,
@@ -220,8 +219,8 @@ func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID 
 }
 
 // ExistsByEmail проверяет существование студента по email
-func (r *StudentRepository) ExistsByEmail(ctx context.Context, email value_objects.Email) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM students WHERE email = $1)`
+func (r *AdminRepository) ExistsByEmail(ctx context.Context, email value_objects.Email) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM admins WHERE email = $1)`
 
 	var exists bool
 	err := r.pool.QueryRow(ctx, query, email.String()).Scan(&exists)
@@ -233,10 +232,10 @@ func (r *StudentRepository) ExistsByEmail(ctx context.Context, email value_objec
 }
 
 // UpdateRating обновляет рейтинг студента
-func (r *StudentRepository) UpdateRating(ctx context.Context, studentID student.StudentID, rating int) error {
-	query := `UPDATE students SET rating = $1, updated_at = $2 WHERE id = $3`
+func (r *AdminRepository) UpdateRating(ctx context.Context, adminID admin.AdminID, rating int) error {
+	query := `UPDATE admins SET rating = $1, updated_at = $2 WHERE id = $3`
 
-	_, err := r.pool.Exec(ctx, query, rating, time.Now(), studentID.String())
+	_, err := r.pool.Exec(ctx, query, rating, time.Now(), adminID.String())
 	if err != nil {
 		return fmt.Errorf("failed to update rating: %w", err)
 	}

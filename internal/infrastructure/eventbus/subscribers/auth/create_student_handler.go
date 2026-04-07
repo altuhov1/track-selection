@@ -6,24 +6,19 @@ import (
 	"track-selection/internal/domain/student"
 )
 
-type CreateStudentHandler struct {
+type CreateStudentRegHandler struct {
 	studentRepo student.Repository
 }
 
-func NewCreateStudentHandler(studentRepo student.Repository) *CreateStudentHandler {
-	return &CreateStudentHandler{studentRepo: studentRepo}
+func NewCreateStudentRegHandler(studentRepo student.Repository) *CreateStudentRegHandler {
+	return &CreateStudentRegHandler{studentRepo: studentRepo}
 }
 
-func (h *CreateStudentHandler) Handle(ctx context.Context, event events.DomainEvent) error {
-	e, ok := event.(events.UserRegisteredEvent)
+func (h *CreateStudentRegHandler) Handle(ctx context.Context, event events.DomainEvent) error {
+	e, ok := event.(student.StudentRegisteredEvent)
 	if !ok {
 		return nil
 	}
-
-	if e.Role != "student" {
-		return nil
-	}
-
 	student, err := student.NewStudent(e.UserID, e.Email)
 	if err != nil {
 		return err

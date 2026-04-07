@@ -40,6 +40,7 @@ type Infrastructure struct {
 	AuthRepo *postgres.AuthRepository
 
 	StudentRepo *postgres.StudentRepository
+	AdminRepo   *postgres.AdminRepository
 
 	// Технические сервисы
 	JwtService authDomain.JWTService
@@ -90,14 +91,13 @@ func (a *App) initInfrastructure() {
 		os.Exit(1)
 	}
 	a.infra.DB = poolPG
-	slog.Info("PostgreSQL initialized")
 
 	// 2. Репозитории
 	a.infra.AuthRepo = postgres.NewAuthRepository(poolPG)
-	slog.Info("Repositories initialized")
 
 	a.infra.StudentRepo = postgres.NewStudentRepository(poolPG)
-	slog.Info("Repositories initialized")
+
+	a.infra.AdminRepo = postgres.NewAdminRepository(poolPG)
 
 	// 3. JWT сервис
 	if a.cfg.Jwt_secret_key == "" {
@@ -108,15 +108,17 @@ func (a *App) initInfrastructure() {
 		Secret:     a.cfg.Jwt_secret_key,
 		Expiration: 24 * time.Hour,
 	})
-	slog.Info("JWT service initialized")
 }
 
 // initEventBus — инициализация шины событий
 func (a *App) initEventBus() {
 	a.eventBus = eventbus.NewMemoryBus()
 	// Подписываем обработчики
-	createStudentHandler := authEventBus.NewCreateStudentHandler(a.infra.StudentRepo)
+	createStudentHandler := authEventBus.NewCreateStudentRegHandler(a.infra.StudentRepo)
 	a.eventBus.Subscribe("student.registered", createStudentHandler)
+
+	createAdminHandler := authEventBus.NewCreateAdminRegHandler(a.infra.AdminRepo)
+	a.eventBus.Subscribe("student.registered", createAdminHandler)
 
 }
 

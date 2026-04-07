@@ -49,6 +49,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			sendError(w, http.StatusConflict, "EMAIL_EXISTS", "email already exists")
 		case errors.ErrInvalidEmail:
 			sendError(w, http.StatusBadRequest, "INVALID_EMAIL", "invalid email format")
+		case errors.ErrInvalidRole:
+			sendError(w, http.StatusBadRequest, "INVALID_ROLE", "invalid role")
 		default:
 			if err.Error() == "password must be at least 6 characters" {
 				sendError(w, http.StatusBadRequest, "WEAK_PASSWORD", err.Error())

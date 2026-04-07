@@ -2,10 +2,12 @@ package auth
 
 import (
 	"context"
+	"track-selection/internal/domain/admin"
 	"track-selection/internal/domain/auth"
 	"track-selection/internal/domain/shared/errors"
 	"track-selection/internal/domain/shared/events"
 	"track-selection/internal/domain/shared/value_objects"
+	"track-selection/internal/domain/student"
 )
 
 // RegisterInput — входные данные
@@ -63,8 +65,12 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) err
 	if err := uc.authRepo.Save(ctx, authUser); err != nil {
 		return err
 	}
-
-	// Только публикуем событие!
-	event := events.NewUserRegisteredEvent(authUser.ID, authUser.Email.String(), string(role))
+	var event events.DomainEvent
+	switch role {
+	case "student":
+		event = student.NewStudentRegisteredEvent(authUser.ID, authUser.Email.String(), string(role))
+	case "admin":
+		event = admin.NewAdminRegisteredEvent(authUser.ID, authUser.Email.String(), string(role))
+	}
 	return uc.eventBus.Publish(ctx, event)
 }
