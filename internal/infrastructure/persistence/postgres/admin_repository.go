@@ -20,28 +20,27 @@ func NewAdminRepository(pool *pgxpool.Pool) *AdminRepository {
 	return &AdminRepository{pool: pool}
 }
 
-// Save сохраняет или обновляет студента
-func (r *AdminRepository) Save(ctx context.Context, s *admin.Admin) error {
+// Save сохраняет или обновляет админа
+func (r *AdminRepository) Save(ctx context.Context, a *admin.Admin) error {
 	query := `
-        INSERT INTO admins (id, auth_user_id, email, username, rating, created_at, updated_at)
+        INSERT INTO admins (id, auth_user_id, email, first_name, last_name, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (id) DO UPDATE SET
             email = EXCLUDED.email,
-            username = EXCLUDED.username,
-            rating = EXCLUDED.rating,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
             updated_at = EXCLUDED.updated_at
     `
 
 	_, err := r.pool.Exec(ctx, query,
-		s.ID().String(),
-		s.AuthUserID(),
-		s.Email().String(),
-		s.Username(),
-		s.Rating(),
-		s.CreatedAt(),
-		s.UpdatedAt(),
+		a.ID().String(),
+		a.AuthUserID(),
+		a.Email().String(),
+		a.FirstName(),
+		a.LastName(),
+		a.CreatedAt(),
+		a.UpdatedAt(),
 	)
-	fmt.Println(err)
 	if err != nil {
 		return fmt.Errorf("failed to save admin: %w", err)
 	}
@@ -49,10 +48,10 @@ func (r *AdminRepository) Save(ctx context.Context, s *admin.Admin) error {
 	return nil
 }
 
-// FindByID находит студента по ID
+// FindByID находит админа по ID
 func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admin.Admin, error) {
 	query := `
-        SELECT id, auth_user_id, email, username, rating, created_at, updated_at
+        SELECT id, auth_user_id, email, first_name, last_name, created_at, updated_at
         FROM admins
         WHERE id = $1
     `
@@ -61,8 +60,8 @@ func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admi
 		idStr      string
 		authUserID string
 		emailStr   string
-		username   string
-		rating     int
+		firstName  string
+		lastName   string
 		createdAt  time.Time
 		updatedAt  time.Time
 	)
@@ -71,8 +70,8 @@ func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admi
 		&idStr,
 		&authUserID,
 		&emailStr,
-		&username,
-		&rating,
+		&firstName,
+		&lastName,
 		&createdAt,
 		&updatedAt,
 	)
@@ -94,22 +93,22 @@ func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admi
 		return nil, fmt.Errorf("invalid admin id in database: %w", err)
 	}
 
-	// Создаем студента через конструктор для восстановления из БД
+	// Создаем админа через конструктор для восстановления из БД
 	return admin.NewAdminFromDB(
 		adminID,
 		authUserID,
 		email,
-		username,
-		rating,
+		firstName,
+		lastName,
 		createdAt,
 		updatedAt,
 	), nil
 }
 
-// FindByEmail находит студента по email
+// FindByEmail находит админа по email
 func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.Email) (*admin.Admin, error) {
 	query := `
-        SELECT id, auth_user_id, email, username, rating, created_at, updated_at
+        SELECT id, auth_user_id, email, first_name, last_name, created_at, updated_at
         FROM admins
         WHERE email = $1
     `
@@ -118,8 +117,8 @@ func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.E
 		idStr      string
 		authUserID string
 		emailStr   string
-		username   string
-		rating     int
+		firstName  string
+		lastName   string
 		createdAt  time.Time
 		updatedAt  time.Time
 	)
@@ -128,8 +127,8 @@ func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.E
 		&idStr,
 		&authUserID,
 		&emailStr,
-		&username,
-		&rating,
+		&firstName,
+		&lastName,
 		&createdAt,
 		&updatedAt,
 	)
@@ -156,17 +155,17 @@ func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.E
 		adminID,
 		authUserID,
 		parsedEmail,
-		username,
-		rating,
+		firstName,
+		lastName,
 		createdAt,
 		updatedAt,
 	), nil
 }
 
-// FindByAuthAdminID находит студента по ID учетной записи
-func (r *AdminRepository) FindByAuthAdminID(ctx context.Context, authUserID string) (*admin.Admin, error) {
+// FindByAuthUserID находит админа по ID учетной записи
+func (r *AdminRepository) FindByAuthUserID(ctx context.Context, authUserID string) (*admin.Admin, error) {
 	query := `
-        SELECT id, auth_user_id, email, username, rating, created_at, updated_at
+        SELECT id, auth_user_id, email, first_name, last_name, created_at, updated_at
         FROM admins
         WHERE auth_user_id = $1
     `
@@ -175,8 +174,8 @@ func (r *AdminRepository) FindByAuthAdminID(ctx context.Context, authUserID stri
 		idStr         string
 		authUserIDOut string
 		emailStr      string
-		username      string
-		rating        int
+		firstName     string
+		lastName      string
 		createdAt     time.Time
 		updatedAt     time.Time
 	)
@@ -185,8 +184,8 @@ func (r *AdminRepository) FindByAuthAdminID(ctx context.Context, authUserID stri
 		&idStr,
 		&authUserIDOut,
 		&emailStr,
-		&username,
-		&rating,
+		&firstName,
+		&lastName,
 		&createdAt,
 		&updatedAt,
 	)
@@ -211,14 +210,14 @@ func (r *AdminRepository) FindByAuthAdminID(ctx context.Context, authUserID stri
 		adminID,
 		authUserIDOut,
 		parsedEmail,
-		username,
-		rating,
+		firstName,
+		lastName,
 		createdAt,
 		updatedAt,
 	), nil
 }
 
-// ExistsByEmail проверяет существование студента по email
+// ExistsByEmail проверяет существование админа по email
 func (r *AdminRepository) ExistsByEmail(ctx context.Context, email value_objects.Email) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM admins WHERE email = $1)`
 
@@ -229,16 +228,4 @@ func (r *AdminRepository) ExistsByEmail(ctx context.Context, email value_objects
 	}
 
 	return exists, nil
-}
-
-// UpdateRating обновляет рейтинг студента
-func (r *AdminRepository) UpdateRating(ctx context.Context, adminID admin.AdminID, rating int) error {
-	query := `UPDATE admins SET rating = $1, updated_at = $2 WHERE id = $3`
-
-	_, err := r.pool.Exec(ctx, query, rating, time.Now(), adminID.String())
-	if err != nil {
-		return fmt.Errorf("failed to update rating: %w", err)
-	}
-
-	return nil
 }

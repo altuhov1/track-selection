@@ -161,8 +161,8 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	r := mux.NewRouter()
 
 	// Публичные эндпоинты (без аутентификации)
-	r.HandleFunc("/register", handler.Register).Methods(http.MethodPost)
-	r.HandleFunc("/login", handler.Login).Methods(http.MethodPost)
+	r.HandleFunc("/api/register", handler.Register).Methods(http.MethodPost)
+	r.HandleFunc("/api/login", handler.Login).Methods(http.MethodPost)
 
 	// Эндпоинты с авторизацией (любая роль)
 	// r.HandleFunc("/student/profile",

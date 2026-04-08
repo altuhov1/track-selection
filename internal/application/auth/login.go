@@ -55,7 +55,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*LoginOu
 	}
 
 	// 4. Генерируем JWT токен
-	token, err := uc.jwtService.GenerateToken(authUser.ID, authUser.Role)
+	token, err := uc.jwtService.GenerateToken(authUser.ID, authUser.FirstName, authUser.LastName, authUser.Role)
 	if err != nil {
 		return nil, err
 	}

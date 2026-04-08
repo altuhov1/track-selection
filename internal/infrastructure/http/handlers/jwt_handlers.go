@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"track-selection/internal/application/auth"
 	"track-selection/internal/domain/shared/errors"
@@ -13,9 +14,11 @@ type AuthHandler struct {
 }
 
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	Role      string `json:"role"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -37,12 +40,15 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Вызываем Use Case
 	err := h.registerUC.Execute(r.Context(), auth.RegisterInput{
-		Email:    req.Email,
-		Password: req.Password,
-		Role:     req.Role,
+		Email:     req.Email,
+		Password:  req.Password,
+		Role:      req.Role,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
 	})
 
 	if err != nil {
+		fmt.Println(err)
 		// Обработка ошибок
 		switch err {
 		case errors.ErrAlreadyExists:
@@ -88,6 +94,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
+		fmt.Println(err)
 		sendError(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid credentials")
 		return
 	}

@@ -9,19 +9,23 @@ import (
 
 type StudentRegisteredEvent struct {
 	events.BaseDomainEvent
-	UserID string
-	Email  string
+	UserID    string
+	Email     string
+	FirstName string
+	LastName  string
 }
 
-// NewUserRegisteredEvent создает событие регистрации пользователя
-func NewStudentRegisteredEvent(userID, email, role string) StudentRegisteredEvent {
+// NewStudentRegisteredEvent создает событие регистрации студента
+func NewStudentRegisteredEvent(userID, email, firstName, lastName string) StudentRegisteredEvent {
 	return StudentRegisteredEvent{
 		BaseDomainEvent: events.BaseDomainEvent{
 			EventID:    uuid.New().String(),
 			EventType:  "student.registered",
 			OccurredAt: time.Now(),
 		},
-		UserID: userID,
-		Email:  email,
+		UserID:    userID,
+		Email:     email,
+		FirstName: firstName,
+		LastName:  lastName,
 	}
 }

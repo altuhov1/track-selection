@@ -20,9 +20,15 @@ func (h *CreateAdminRegHandler) Handle(ctx context.Context, event events.DomainE
 		return nil
 	}
 
-	admin, err := admin.NewAdmin(e.UserID, e.Email)
+	admin, err := admin.NewAdmin(
+		e.UserID,
+		e.Email,
+		e.FirstName,
+		e.LastName,
+	)
 	if err != nil {
 		return err
 	}
+
 	return h.adminRepo.Save(ctx, admin)
 }

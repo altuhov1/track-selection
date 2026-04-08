@@ -43,3 +43,4 @@ func NewPoolPg(cfg *PoolConfig) (*pgxpool.Pool, error) {
 
 	return pool, nil
 }
+

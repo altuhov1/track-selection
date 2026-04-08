@@ -42,7 +42,9 @@ services:
       - public
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
     ports:
       - "${NGINX_PORT}:80"
     volumes:

@@ -23,9 +23,11 @@ type AuthUser struct {
 	Role         UserRole
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	FirstName    string
+	LastName     string
 }
 
-func NewAuthUser(email string, rawPassword string, role UserRole) (*AuthUser, error) {
+func NewAuthUser(email string, rawPassword, FirstName, LastName string, role UserRole) (*AuthUser, error) {
 	validatedEmail, err := value_objects.NewEmail(email)
 	if err != nil {
 		return nil, err
@@ -49,6 +51,8 @@ func NewAuthUser(email string, rawPassword string, role UserRole) (*AuthUser, er
 		Role:         role,
 		CreatedAt:    now,
 		UpdatedAt:    now,
+		FirstName:    FirstName,
+		LastName:     LastName,
 	}, nil
 }
 

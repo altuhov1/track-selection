@@ -23,10 +23,12 @@ func NewStudentRepository(pool *pgxpool.Pool) *StudentRepository {
 // Save сохраняет или обновляет студента
 func (r *StudentRepository) Save(ctx context.Context, s *student.Student) error {
 	query := `
-        INSERT INTO students (id, auth_user_id, email, username, rating, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO students (id, auth_user_id, email, first_name, last_name, username, rating, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (id) DO UPDATE SET
             email = EXCLUDED.email,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
             username = EXCLUDED.username,
             rating = EXCLUDED.rating,
             updated_at = EXCLUDED.updated_at
@@ -36,12 +38,14 @@ func (r *StudentRepository) Save(ctx context.Context, s *student.Student) error 
 		s.ID().String(),
 		s.AuthUserID(),
 		s.Email().String(),
+		s.FirstName(),
+		s.LastName(),
 		s.Username(),
 		s.Rating(),
 		s.CreatedAt(),
 		s.UpdatedAt(),
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to save student: %w", err)
 	}
@@ -52,7 +56,7 @@ func (r *StudentRepository) Save(ctx context.Context, s *student.Student) error 
 // FindByID находит студента по ID
 func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) (*student.Student, error) {
 	query := `
-        SELECT id, auth_user_id, email, username, rating, created_at, updated_at
+        SELECT id, auth_user_id, email, first_name, last_name, username, rating, created_at, updated_at
         FROM students
         WHERE id = $1
     `
@@ -61,6 +65,8 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 		idStr      string
 		authUserID string
 		emailStr   string
+		firstName  string
+		lastName   string
 		username   string
 		rating     int
 		createdAt  time.Time
@@ -71,6 +77,8 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 		&idStr,
 		&authUserID,
 		&emailStr,
+		&firstName,
+		&lastName,
 		&username,
 		&rating,
 		&createdAt,
@@ -100,6 +108,8 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 		studentID,
 		authUserID,
 		email,
+		firstName,
+		lastName,
 		username,
 		rating,
 		createdAt,
@@ -110,7 +120,7 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 // FindByEmail находит студента по email
 func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects.Email) (*student.Student, error) {
 	query := `
-        SELECT id, auth_user_id, email, username, rating, created_at, updated_at
+        SELECT id, auth_user_id, email, first_name, last_name, username, rating, created_at, updated_at
         FROM students
         WHERE email = $1
     `
@@ -119,6 +129,8 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 		idStr      string
 		authUserID string
 		emailStr   string
+		firstName  string
+		lastName   string
 		username   string
 		rating     int
 		createdAt  time.Time
@@ -129,6 +141,8 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 		&idStr,
 		&authUserID,
 		&emailStr,
+		&firstName,
+		&lastName,
 		&username,
 		&rating,
 		&createdAt,
@@ -157,6 +171,8 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 		studentID,
 		authUserID,
 		parsedEmail,
+		firstName,
+		lastName,
 		username,
 		rating,
 		createdAt,
@@ -164,10 +180,10 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 	), nil
 }
 
-// FindByAuthStudentID находит студента по ID учетной записи
-func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID string) (*student.Student, error) {
+// FindByAuthUserID находит студента по ID учетной записи
+func (r *StudentRepository) FindByAuthUserID(ctx context.Context, authUserID string) (*student.Student, error) {
 	query := `
-        SELECT id, auth_user_id, email, username, rating, created_at, updated_at
+        SELECT id, auth_user_id, email, first_name, last_name, username, rating, created_at, updated_at
         FROM students
         WHERE auth_user_id = $1
     `
@@ -176,6 +192,8 @@ func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID 
 		idStr         string
 		authUserIDOut string
 		emailStr      string
+		firstName     string
+		lastName      string
 		username      string
 		rating        int
 		createdAt     time.Time
@@ -186,6 +204,8 @@ func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID 
 		&idStr,
 		&authUserIDOut,
 		&emailStr,
+		&firstName,
+		&lastName,
 		&username,
 		&rating,
 		&createdAt,
@@ -212,6 +232,8 @@ func (r *StudentRepository) FindByAuthStudentID(ctx context.Context, authUserID 
 		studentID,
 		authUserIDOut,
 		parsedEmail,
+		firstName,
+		lastName,
 		username,
 		rating,
 		createdAt,

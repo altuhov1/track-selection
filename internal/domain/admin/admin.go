@@ -1,8 +1,6 @@
 package admin
 
 import (
-	"errors"
-	"strings"
 	"time"
 	"track-selection/internal/domain/shared/value_objects"
 )
@@ -11,13 +9,13 @@ type Admin struct {
 	id         AdminID
 	authUserID string
 	email      value_objects.Email
-	username   string
-	rating     int
+	firstName  string
+	lastName   string
 	createdAt  time.Time
 	updatedAt  time.Time
 }
 
-func NewAdmin(authUserID string, emailStr string) (*Admin, error) {
+func NewAdmin(authUserID string, emailStr string, firstName, lastName string) (*Admin, error) {
 	email, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, err
@@ -29,8 +27,8 @@ func NewAdmin(authUserID string, emailStr string) (*Admin, error) {
 		id:         NewAdminID(),
 		authUserID: authUserID,
 		email:      email,
-		username:   strings.Split(emailStr, "@")[0], // username из email по умолчанию
-		rating:     0,
+		firstName:  firstName,
+		lastName:   lastName,
 		createdAt:  now,
 		updatedAt:  now,
 	}, nil
@@ -40,8 +38,7 @@ func NewAdminFromDB(
 	id AdminID,
 	authUserID string,
 	email value_objects.Email,
-	username string,
-	rating int,
+	firstName, lastName string,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *Admin {
@@ -49,48 +46,18 @@ func NewAdminFromDB(
 		id:         id,
 		authUserID: authUserID,
 		email:      email,
-		username:   username,
-		rating:     rating,
+		firstName:  firstName,
+		lastName:   lastName,
 		createdAt:  createdAt,
 		updatedAt:  updatedAt,
 	}
 }
 
 // Геттеры
-func (s *Admin) ID() AdminID                { return s.id }
-func (s *Admin) AuthUserID() string         { return s.authUserID }
-func (s *Admin) Email() value_objects.Email { return s.email }
-func (s *Admin) Username() string           { return s.username }
-func (s *Admin) Rating() int                { return s.rating }
-func (s *Admin) CreatedAt() time.Time       { return s.createdAt }
-func (s *Admin) UpdatedAt() time.Time       { return s.updatedAt }
-
-// Методы для изменения данных
-func (s *Admin) ChangeUsername(username string) error {
-	username = strings.TrimSpace(username)
-	if username == "" {
-		return errors.New("username cannot be empty")
-	}
-	if len(username) < 3 {
-		return errors.New("username must be at least 3 characters")
-	}
-
-	s.username = username
-	s.updatedAt = time.Now()
-	return nil
-}
-
-func (s *Admin) ChangeRating(rating int) error {
-	if rating < 0 || rating > 100 {
-		return errors.New("rating must be between 0 and 100")
-	}
-
-	s.rating = rating
-	s.updatedAt = time.Now()
-	return nil
-}
-
-func (s *Admin) ChangeEmail(email value_objects.Email) {
-	s.email = email
-	s.updatedAt = time.Now()
-}
+func (a *Admin) ID() AdminID                { return a.id }
+func (a *Admin) AuthUserID() string         { return a.authUserID }
+func (a *Admin) Email() value_objects.Email { return a.email }
+func (a *Admin) FirstName() string          { return a.firstName }
+func (a *Admin) LastName() string           { return a.lastName }
+func (a *Admin) CreatedAt() time.Time       { return a.createdAt }
+func (a *Admin) UpdatedAt() time.Time       { return a.updatedAt }

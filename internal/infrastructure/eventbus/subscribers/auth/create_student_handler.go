@@ -19,9 +19,16 @@ func (h *CreateStudentRegHandler) Handle(ctx context.Context, event events.Domai
 	if !ok {
 		return nil
 	}
-	student, err := student.NewStudent(e.UserID, e.Email)
+
+	student, err := student.NewStudent(
+		e.UserID,
+		e.Email,
+		e.FirstName,
+		e.LastName,
+	)
 	if err != nil {
 		return err
 	}
+
 	return h.studentRepo.Save(ctx, student)
 }

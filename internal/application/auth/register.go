@@ -12,9 +12,11 @@ import (
 
 // RegisterInput — входные данные
 type RegisterInput struct {
-	Email    string
-	Password string
-	Role     string
+	Email     string
+	Password  string
+	Role      string
+	FirstName string
+	LastName  string
 }
 
 // RegisterUseCase — Use Case регистрации
@@ -57,7 +59,15 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) err
 		return errors.ErrAlreadyExists
 	}
 
-	authUser, err := auth.NewAuthUser(input.Email, input.Password, role)
+	// ВНИМАНИЕ: порядок параметров!
+	// NewAuthUser(email, rawPassword, firstName, lastName, role)
+	authUser, err := auth.NewAuthUser(
+		input.Email,
+		input.Password,
+		input.FirstName,
+		input.LastName,
+		role,
+	)
 	if err != nil {
 		return err
 	}
@@ -65,12 +75,24 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) err
 	if err := uc.authRepo.Save(ctx, authUser); err != nil {
 		return err
 	}
+
 	var event events.DomainEvent
 	switch role {
-	case "student":
-		event = student.NewStudentRegisteredEvent(authUser.ID, authUser.Email.String(), string(role))
-	case "admin":
-		event = admin.NewAdminRegisteredEvent(authUser.ID, authUser.Email.String(), string(role))
+	case auth.RoleStudent:
+		event = student.NewStudentRegisteredEvent(
+			authUser.ID,
+			authUser.Email.String(),
+			input.FirstName,
+			input.LastName,
+		)
+	case auth.RoleAdmin:
+		event = admin.NewAdminRegisteredEvent(
+			authUser.ID,
+			authUser.Email.String(),
+			input.FirstName,
+			input.LastName,
+		)
 	}
+
 	return uc.eventBus.Publish(ctx, event)
 }

@@ -11,6 +11,8 @@ type Student struct {
 	id         StudentID
 	authUserID string
 	email      value_objects.Email
+	firstName  string
+	lastName   string
 	username   string
 	rating     int
 	createdAt  time.Time
@@ -18,11 +20,14 @@ type Student struct {
 }
 
 // NewStudent создает нового студента
-func NewStudent(authUserID string, emailStr string) (*Student, error) {
+func NewStudent(authUserID string, emailStr string, firstName, lastName string) (*Student, error) {
 	email, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, err
 	}
+
+	// Создаем username из имени и фамилии
+	username := strings.ToLower(strings.ReplaceAll(firstName+"."+lastName, " ", ""))
 
 	now := time.Now()
 
@@ -30,7 +35,9 @@ func NewStudent(authUserID string, emailStr string) (*Student, error) {
 		id:         NewStudentID(),
 		authUserID: authUserID,
 		email:      email,
-		username:   strings.Split(emailStr, "@")[0], // username из email по умолчанию
+		firstName:  firstName,
+		lastName:   lastName,
+		username:   username,
 		rating:     0,
 		createdAt:  now,
 		updatedAt:  now,
@@ -42,7 +49,7 @@ func NewStudentFromDB(
 	id StudentID,
 	authUserID string,
 	email value_objects.Email,
-	username string,
+	firstName, lastName, username string,
 	rating int,
 	createdAt time.Time,
 	updatedAt time.Time,
@@ -51,6 +58,8 @@ func NewStudentFromDB(
 		id:         id,
 		authUserID: authUserID,
 		email:      email,
+		firstName:  firstName,
+		lastName:   lastName,
 		username:   username,
 		rating:     rating,
 		createdAt:  createdAt,
@@ -62,6 +71,8 @@ func NewStudentFromDB(
 func (s *Student) ID() StudentID              { return s.id }
 func (s *Student) AuthUserID() string         { return s.authUserID }
 func (s *Student) Email() value_objects.Email { return s.email }
+func (s *Student) FirstName() string          { return s.firstName }
+func (s *Student) LastName() string           { return s.lastName }
 func (s *Student) Username() string           { return s.username }
 func (s *Student) Rating() int                { return s.rating }
 func (s *Student) CreatedAt() time.Time       { return s.createdAt }

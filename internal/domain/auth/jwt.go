@@ -2,7 +2,7 @@ package auth
 
 type JWTService interface {
 	// GenerateToken создает JWT токен для пользователя
-	GenerateToken(userID string, role UserRole) (string, error)
+	GenerateToken(userID, firstName, lastName string, role UserRole) (string, error)
 
 	// ValidateToken проверяет токен и возвращает данные пользователя
 	ValidateToken(token string) (*TokenClaims, error)
@@ -10,6 +10,8 @@ type JWTService interface {
 
 // TokenClaims — данные, которые хранятся в токене
 type TokenClaims struct {
-	UserID string
-	Role   UserRole
+	UserID    string
+	Role      UserRole
+	FirstName string
+	LastName  string
 }
