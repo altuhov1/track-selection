@@ -163,6 +163,7 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	// Публичные эндпоинты (без аутентификации)
 	r.HandleFunc("/api/register", handler.Register).Methods(http.MethodPost)
 	r.HandleFunc("/api/login", handler.Login).Methods(http.MethodPost)
+	r.HandleFunc("/api/me", middleware.WithAuth(a.infra.JwtService, handler.GetMe, middleware.RoleAny)).Methods(http.MethodGet)
 
 	// Эндпоинты с авторизацией (любая роль)
 	// r.HandleFunc("/student/profile",

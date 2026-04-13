@@ -9,11 +9,9 @@ import (
 )
 
 const (
-	UserIDKey string = "user_id"
-	RoleKey   string = "role"
-	RoleAny   int    = 0 // любая роль (admin или user)
-	RoleAdmin int    = 1 // только admin
-	RoleUser  int    = 2 // только user
+	RoleAny   int = 0 // любая роль (admin или user)
+	RoleAdmin int = 1 // только admin
+	RoleUser  int = 2 // только user
 )
 
 func WithAuth(JwtService auth.JWTService, handlerFn func(http.ResponseWriter, *http.Request), requiredRole int) http.HandlerFunc {
@@ -57,10 +55,11 @@ func WithAuth(JwtService auth.JWTService, handlerFn func(http.ResponseWriter, *h
 		case RoleAny:
 			// любая роль подходит
 		}
-		//nolint:staticcheck
-		ctx := context.WithValue(r.Context(), UserIDKey, token.UserID)
-		//nolint:staticcheck
-		ctx = context.WithValue(ctx, RoleKey, token.Role)
+		ctx := context.WithValue(r.Context(), "user_id", token.UserID)
+		ctx = context.WithValue(ctx, "user_role", string(token.Role))
+		ctx = context.WithValue(ctx, "first_name", token.FirstName)
+		ctx = context.WithValue(ctx, "last_name", token.LastName)
+		ctx = context.WithValue(ctx, "email", token.Email)
 		r = r.WithContext(ctx)
 
 		handlerFn(w, r)

@@ -7,12 +7,12 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo "=========================================="
-echo "     E2E TESTS - REGISTER & LOGIN"
+echo "     E2E TESTS - REGISTER & LOGIN & ME"
 echo "=========================================="
 echo ""
 
 # Базовый URL
-BASE_URL="http://localhost:8080/api"
+BASE_URL="http://localhost:3000/api"
 
 # Проверка что сервер запущен
 if ! curl -s "${BASE_URL}/login" > /dev/null 2>&1; then
@@ -158,6 +158,7 @@ TOKEN=$(echo "$RESPONSE" | jq -r '.token' 2>/dev/null)
 
 if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
     echo -e "${GREEN}✓ PASSED (got token)${NC}"
+    STUDENT_TOKEN="$TOKEN"
 else
     echo -e "${RED}✗ FAILED: $RESPONSE${NC}"
 fi
@@ -173,6 +174,7 @@ TOKEN=$(echo "$RESPONSE" | jq -r '.token' 2>/dev/null)
 
 if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
     echo -e "${GREEN}✓ PASSED (got token)${NC}"
+    ADMIN_TOKEN="$TOKEN"
 else
     echo -e "${RED}✗ FAILED: $RESPONSE${NC}"
 fi
@@ -196,6 +198,81 @@ echo "Test 10: Login non-existent email"
 RESPONSE=$(curl -s -X POST "${BASE_URL}/login" \
     -H "Content-Type: application/json" \
     -d '{"email":"noexist@example.com","password":"pass123"}')
+
+if echo "$RESPONSE" | grep -q "UNAUTHORIZED"; then
+    echo -e "${GREEN}✓ PASSED${NC}"
+else
+    echo -e "${RED}✗ FAILED: $RESPONSE${NC}"
+fi
+echo ""
+
+# ============================================
+# GET /ME TESTS
+# ============================================
+echo "========== GET /api/me =========="
+echo ""
+
+# Тест 11: Получение информации о студенте
+if [ -n "$STUDENT_TOKEN" ]; then
+    echo "Test 11: Get student info from /me"
+    RESPONSE=$(curl -s -X GET "${BASE_URL}/me" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $STUDENT_TOKEN")
+    
+    EMAIL=$(echo "$RESPONSE" | jq -r '.email' 2>/dev/null)
+    ROLE=$(echo "$RESPONSE" | jq -r '.role' 2>/dev/null)
+    FIRST_NAME=$(echo "$RESPONSE" | jq -r '.first_name' 2>/dev/null)
+    LAST_NAME=$(echo "$RESPONSE" | jq -r '.last_name' 2>/dev/null)
+    
+    if [ "$EMAIL" = "student@example.com" ] && [ "$ROLE" = "student" ] && [ "$FIRST_NAME" = "Иван" ] && [ "$LAST_NAME" = "Петров" ]; then
+        echo -e "${GREEN}✓ PASSED${NC}"
+    else
+        echo -e "${RED}✗ FAILED: $RESPONSE${NC}"
+    fi
+else
+    echo "Test 11: Skipped (no student token)"
+fi
+echo ""
+
+# Тест 12: Получение информации об админе
+if [ -n "$ADMIN_TOKEN" ]; then
+    echo "Test 12: Get admin info from /me"
+    RESPONSE=$(curl -s -X GET "${BASE_URL}/me" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $ADMIN_TOKEN")
+    
+    EMAIL=$(echo "$RESPONSE" | jq -r '.email' 2>/dev/null)
+    ROLE=$(echo "$RESPONSE" | jq -r '.role' 2>/dev/null)
+    FIRST_NAME=$(echo "$RESPONSE" | jq -r '.first_name' 2>/dev/null)
+    LAST_NAME=$(echo "$RESPONSE" | jq -r '.last_name' 2>/dev/null)
+    
+    if [ "$EMAIL" = "admin@example.com" ] && [ "$ROLE" = "admin" ] && [ "$FIRST_NAME" = "Петр" ] && [ "$LAST_NAME" = "Сидоров" ]; then
+        echo -e "${GREEN}✓ PASSED${NC}"
+    else
+        echo -e "${RED}✗ FAILED: $RESPONSE${NC}"
+    fi
+else
+    echo "Test 12: Skipped (no admin token)"
+fi
+echo ""
+
+# Тест 13: Доступ к /me без токена (ошибка)
+echo "Test 13: Access /me without token (should fail)"
+RESPONSE=$(curl -s -X GET "${BASE_URL}/me" \
+    -H "Content-Type: application/json")
+
+if echo "$RESPONSE" | grep -q "UNAUTHORIZED"; then
+    echo -e "${GREEN}✓ PASSED${NC}"
+else
+    echo -e "${RED}✗ FAILED: $RESPONSE${NC}"
+fi
+echo ""
+
+# Тест 14: Доступ к /me с невалидным токеном (ошибка)
+echo "Test 14: Access /me with invalid token (should fail)"
+RESPONSE=$(curl -s -X GET "${BASE_URL}/me" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer invalid.token.here")
 
 if echo "$RESPONSE" | grep -q "UNAUTHORIZED"; then
     echo -e "${GREEN}✓ PASSED${NC}"

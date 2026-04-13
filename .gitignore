@@ -22,3 +22,6 @@ vendor/
 .vscode/
 
 .DS_Store
+CLAUDE.md
+frontend/node_modules/                                                                                                                 
+static/

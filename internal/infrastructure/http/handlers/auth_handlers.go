@@ -101,3 +101,31 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, http.StatusOK, map[string]string{"token": output.Token})
 }
+
+// GetMe возвращает информацию о текущем пользователе
+func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
+	// Данные уже в контексте от middleware!
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok || userID == "" {
+		sendError(w, http.StatusUnauthorized, "UNAUTHORIZED", "not authenticated")
+		return
+	}
+
+	role, ok := r.Context().Value("user_role").(string)
+	if !ok || role == "" {
+		sendError(w, http.StatusUnauthorized, "UNAUTHORIZED", "role not found in context")
+		return
+	}
+
+	firstName, _ := r.Context().Value("first_name").(string)
+	lastName, _ := r.Context().Value("last_name").(string)
+	email, _ := r.Context().Value("email").(string)
+
+	sendJSON(w, http.StatusOK, map[string]interface{}{
+		"id":         userID,
+		"email":      email,
+		"first_name": firstName,
+		"last_name":  lastName,
+		"role":       role,
+	})
+}

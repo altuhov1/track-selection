@@ -28,14 +28,15 @@ func NewJWTService(config *JWTConfig) auth.JWTService {
 	}
 }
 
-func (s *JWTServiceImpl) GenerateToken(userID, firstName, lastName string, role auth.UserRole) (string, error) {
+func (s *JWTServiceImpl) GenerateToken(userID string, role auth.UserRole, firstName, lastName, email string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id":    userID,
 		"role":       string(role),
-		"exp":        time.Now().Add(s.expiration).Unix(),
-		"iat":        time.Now().Unix(),
 		"first_name": firstName,
 		"last_name":  lastName,
+		"email":      email,
+		"exp":        time.Now().Add(s.expiration).Unix(),
+		"iat":        time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -82,11 +83,16 @@ func (s *JWTServiceImpl) ValidateToken(tokenString string) (*auth.TokenClaims, e
 	if !ok {
 		return nil, domErr.ErrInvalidToken
 	}
+	email, ok := claims["email"].(string)
+	if !ok {
+		return nil, domErr.ErrInvalidToken
+	}
 
 	return &auth.TokenClaims{
 		UserID:    userID,
 		Role:      auth.UserRole(roleStr),
 		FirstName: first_name,
 		LastName:  last_name,
+		Email:     email,
 	}, nil
 }
