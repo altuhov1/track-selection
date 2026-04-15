@@ -29,3 +29,27 @@ func NewStudentRegisteredEvent(userID, email, firstName, lastName string) Studen
 		LastName:  lastName,
 	}
 }
+
+// Это пометка что пользователь готов к показу статистик
+type ProfileCompletedEvent struct {
+	events.BaseDomainEvent
+	UserID    string `json:"user_id"`
+	Completed bool   `json:"completed"`
+}
+
+func NewProfileCompletedEvent(userID string, completed bool) ProfileCompletedEvent {
+	eventType := "profile.completed"
+	if !completed {
+		eventType = "profile.incomplete"
+	}
+
+	return ProfileCompletedEvent{
+		BaseDomainEvent: events.BaseDomainEvent{
+			EventID:    uuid.New().String(),
+			EventType:  eventType,
+			OccurredAt: time.Now(),
+		},
+		UserID:    userID,
+		Completed: completed,
+	}
+}

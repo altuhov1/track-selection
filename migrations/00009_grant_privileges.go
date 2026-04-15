@@ -48,18 +48,18 @@ func upGrantPrivileges(ctx context.Context, tx *sql.Tx) error {
 	if err != nil {
 		return err
 	}
-	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
-	// 	GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE topics TO %s;
-	// `, quotedUser))
-	// if err != nil {
-	// 	return err
-	// }
-	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
-	// 	GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE requirements TO %s;
-	// `, quotedUser))
-	// if err != nil {
-	// 	return err
-	// }
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
+		GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_preferences TO %s;
+	`, quotedUser))
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
+		GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE profile_completion TO %s;
+	`, quotedUser))
+	if err != nil {
+		return err
+	}
 	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
 	// 	GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE reviews TO %s;
 	// `, quotedUser))
@@ -116,36 +116,26 @@ func downGrantPrivileges(ctx context.Context, tx *sql.Tx) error {
 		}
 		return err
 	}
-	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
-	// 	REVOKE ALL PRIVILEGES ON TABLE topics FROM %s;
-	// `, quotedUser))
-	// if err != nil {
-	// 	if strings.Contains(err.Error(), "undefined_object") {
-	// 		fmt.Printf("Privileges already revoked for bookings: %s\n", username)
-	// 		return nil
-	// 	}
-	// 	return err
-	// }
-	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
-	// 	REVOKE ALL PRIVILEGES ON TABLE requirements FROM %s;
-	// `, quotedUser))
-	// if err != nil {
-	// 	if strings.Contains(err.Error(), "undefined_object") {
-	// 		fmt.Printf("Privileges already revoked for bookings: %s\n", username)
-	// 		return nil
-	// 	}
-	// 	return err
-	// }
-	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
-	// 	REVOKE ALL PRIVILEGES ON TABLE reviews FROM %s;
-	// `, quotedUser))
-	// if err != nil {
-	// 	if strings.Contains(err.Error(), "undefined_object") {
-	// 		fmt.Printf("Privileges already revoked for bookings: %s\n", username)
-	// 		return nil
-	// 	}
-	// 	return err
-	// }
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
+		REVOKE ALL PRIVILEGES ON TABLE user_preferences FROM %s;
+	`, quotedUser))
+	if err != nil {
+		if strings.Contains(err.Error(), "undefined_object") {
+			fmt.Printf("Privileges already revoked for bookings: %s\n", username)
+			return nil
+		}
+		return err
+	}
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
+		REVOKE ALL PRIVILEGES ON TABLE profile_completion FROM %s;
+	`, quotedUser))
+	if err != nil {
+		if strings.Contains(err.Error(), "undefined_object") {
+			fmt.Printf("Privileges already revoked for bookings: %s\n", username)
+			return nil
+		}
+		return err
+	}
 	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
 	// 	REVOKE ALL PRIVILEGES ON TABLE track_teachers FROM %s;
 	// `, quotedUser))

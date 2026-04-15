@@ -10,9 +10,11 @@ import (
 	"time"
 	"track-selection/internal/application/auth"
 	authApp "track-selection/internal/application/auth"
+	studApp "track-selection/internal/application/student"
 	"track-selection/internal/config"
 	authDomain "track-selection/internal/domain/auth"
 	"track-selection/internal/domain/shared/events"
+	"track-selection/internal/domain/student"
 	"track-selection/internal/infrastructure/eventbus"
 	authEventBus "track-selection/internal/infrastructure/eventbus/subscribers/auth"
 	"track-selection/internal/infrastructure/http/handlers"
@@ -37,10 +39,11 @@ type App struct {
 // Infrastructure — все технические компоненты (репозитории, сервисы, БД)
 type Infrastructure struct {
 	// Репозитории (работа с БД)
-	AuthRepo *postgres.AuthRepository
-
-	StudentRepo *postgres.StudentRepository
-	AdminRepo   *postgres.AdminRepository
+	AuthRepo              *postgres.AuthRepository
+	StudentRepo           *postgres.StudentRepository
+	AdminRepo             *postgres.AdminRepository
+	PreferencesRepo       *postgres.PreferencesRepository
+	ProfileCompletionRepo *postgres.ProfileCompletionRepository
 
 	// Технические сервисы
 	JwtService authDomain.JWTService
@@ -54,6 +57,11 @@ type UseCases struct {
 	// Auth Use Cases
 	RegisterUC *authApp.RegisterUseCase
 	LoginUC    *authApp.LoginUseCase
+
+	// Student Use Cases
+	UpdatePreferencesUC    *studApp.UpdatePreferencesUseCase
+	GetPreferencesUC       *studApp.GetPreferencesUseCase
+	GetProfileCompletionUC *studApp.GetProfileCompletionUseCase
 }
 
 func NewApp(cfg *config.ConfigApp) *App {
@@ -94,10 +102,10 @@ func (a *App) initInfrastructure() {
 
 	// 2. Репозитории
 	a.infra.AuthRepo = postgres.NewAuthRepository(poolPG)
-
 	a.infra.StudentRepo = postgres.NewStudentRepository(poolPG)
-
 	a.infra.AdminRepo = postgres.NewAdminRepository(poolPG)
+	a.infra.PreferencesRepo = postgres.NewPreferencesRepository(poolPG)
+	a.infra.ProfileCompletionRepo = postgres.NewProfileCompletionRepository(poolPG)
 
 	// 3. JWT сервис
 	if a.cfg.Jwt_secret_key == "" {
@@ -113,17 +121,26 @@ func (a *App) initInfrastructure() {
 // initEventBus — инициализация шины событий
 func (a *App) initEventBus() {
 	a.eventBus = eventbus.NewMemoryBus()
+
 	// Подписываем обработчики
 	createStudentHandler := authEventBus.NewCreateStudentRegHandler(a.infra.StudentRepo)
 	a.eventBus.Subscribe("student.registered", createStudentHandler)
 
 	createAdminHandler := authEventBus.NewCreateAdminRegHandler(a.infra.AdminRepo)
-	a.eventBus.Subscribe("student.registered", createAdminHandler)
+	a.eventBus.Subscribe("admin.registered", createAdminHandler)
 
+	createProfileHandler := authEventBus.NewCreateProfileCompletionHandler(
+		a.infra.PreferencesRepo,
+		a.infra.ProfileCompletionRepo,
+	)
+	a.eventBus.Subscribe("student.registered", createProfileHandler)
 }
 
 // initUseCases — инициализация всех Use Case'ов
 func (a *App) initUseCases() {
+	// Profile checker
+	profileChecker := student.NewProfileChecker()
+
 	// Auth Use Cases
 	a.useCases.RegisterUC = auth.NewRegisterUseCase(
 		a.infra.AuthRepo,
@@ -135,6 +152,17 @@ func (a *App) initUseCases() {
 		a.infra.JwtService,
 	)
 
+	// Student Use Cases
+	a.useCases.UpdatePreferencesUC = studApp.NewUpdatePreferencesUseCase(
+		a.infra.PreferencesRepo,
+		a.infra.ProfileCompletionRepo,
+		profileChecker,
+		a.eventBus,
+	)
+
+	a.useCases.GetPreferencesUC = studApp.NewGetPreferencesUseCase(a.infra.PreferencesRepo)
+	a.useCases.GetProfileCompletionUC = studApp.NewGetProfileCompletionUseCase(a.infra.ProfileCompletionRepo)
+
 	slog.Info("Use Cases initialized")
 }
 
@@ -143,6 +171,9 @@ func (a *App) initHTTP() {
 	handler := handlers.NewHandler(
 		a.useCases.RegisterUC,
 		a.useCases.LoginUC,
+		a.useCases.UpdatePreferencesUC,
+		a.useCases.GetPreferencesUC,
+		a.useCases.GetProfileCompletionUC,
 	)
 
 	router := a.setupRoutes(handler)
@@ -163,12 +194,12 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	// Публичные эндпоинты (без аутентификации)
 	r.HandleFunc("/api/register", handler.Register).Methods(http.MethodPost)
 	r.HandleFunc("/api/login", handler.Login).Methods(http.MethodPost)
-	r.HandleFunc("/api/me", middleware.WithAuth(a.infra.JwtService, handler.GetMe, middleware.RoleAny)).Methods(http.MethodGet)
 
-	// Эндпоинты с авторизацией (любая роль)
-	// r.HandleFunc("/student/profile",
-	// 	middleware.WithAuth(a.infra.JwtService, handler.GetProfile, middleware.RoleAny)).
-	// 	Methods(http.MethodGet)
+	// Защищенные эндпоинты (с аутентификацией)
+	r.HandleFunc("/api/me", middleware.WithAuth(a.infra.JwtService, handler.GetMe, middleware.RoleAny)).Methods(http.MethodGet)
+	r.HandleFunc("/api/me/edit-info", middleware.WithAuth(a.infra.JwtService, handler.UpdatePreferences, middleware.RoleAny)).Methods(http.MethodPost)
+	r.HandleFunc("/api/me/info", middleware.WithAuth(a.infra.JwtService, handler.GetPreferences, middleware.RoleAny)).Methods(http.MethodGet)
+	r.HandleFunc("/api/me/profile-completion", middleware.WithAuth(a.infra.JwtService, handler.GetProfileCompletion, middleware.RoleAny)).Methods(http.MethodGet)
 
 	return middleware.ContextMiddleware(a.rootCtx, r)
 }

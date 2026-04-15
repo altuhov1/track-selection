@@ -4,17 +4,30 @@ import (
 	"encoding/json"
 	"net/http"
 	"track-selection/internal/application/auth"
+	"track-selection/internal/application/student"
 )
 
 type Handler struct {
-	registerUC *auth.RegisterUseCase
-	loginUC    *auth.LoginUseCase
+	registerUC             *auth.RegisterUseCase
+	loginUC                *auth.LoginUseCase
+	updatePreferencesUC    *student.UpdatePreferencesUseCase
+	getPreferencesUC       *student.GetPreferencesUseCase
+	getProfileCompletionUC *student.GetProfileCompletionUseCase
 }
 
-func NewHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase) *Handler {
+func NewHandler(
+	registerUC *auth.RegisterUseCase,
+	loginUC *auth.LoginUseCase,
+	updatePreferencesUC *student.UpdatePreferencesUseCase,
+	getPreferencesUC *student.GetPreferencesUseCase,
+	getProfileCompletionUC *student.GetProfileCompletionUseCase, // ← добавить
+) *Handler {
 	return &Handler{
-		registerUC: registerUC,
-		loginUC:    loginUC,
+		registerUC:             registerUC,
+		loginUC:                loginUC,
+		updatePreferencesUC:    updatePreferencesUC,
+		getPreferencesUC:       getPreferencesUC,
+		getProfileCompletionUC: getProfileCompletionUC, // ← добавить
 	}
 }
 
