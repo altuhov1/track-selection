@@ -18,6 +18,8 @@ tags:
     description: Аутентификация и регистрация
   - name: User
     description: Информация о пользователе
+  - name: Preferences
+    description: Предпочтения пользователя
 
 paths:
   /register:
@@ -232,6 +234,248 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /me/info:
+    get:
+      tags:
+        - Preferences
+      summary: Получить предпочтения пользователя
+      description: Возвращает все предпочтения пользователя (профессиональные цели, оценки, навыки, стиль обучения)
+      operationId: getUserPreferences
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/edit-info:
+    post:
+      tags:
+        - Preferences
+      summary: Обновить предпочтения пользователя
+      description: Частичное или полное обновление предпочтений. Можно передать только часть полей.
+      operationId: updateUserPreferences
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                professional_goals:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1, 2, 3]
+                  description: ID профессиональных целей
+                grades:
+                  type: object
+                  properties:
+                    informatics:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                    programming:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                    foreign_language:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 3
+                    physics:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                    aig:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                    math_analysis:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                    algorithms_data_structures:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                    databases:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                    discrete_math:
+                      type: integer
+                      minimum: 2
+                      maximum: 5
+                      example: 4
+                skills:
+                  type: object
+                  properties:
+                    databases:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 8
+                    system_architecture:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 7
+                    algorithmic_programming:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 6
+                    public_speaking:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 5
+                    testing:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 7
+                    analytics:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 8
+                    machine_learning:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 4
+                    os_knowledge:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 6
+                    research_projects:
+                      type: integer
+                      minimum: 0
+                      maximum: 10
+                      example: 7
+                learning_style:
+                  type: integer
+                  enum: [1, 2, 3]
+                  example: 2
+                  description: "1 - практика, 2 - теория, 3 - проектная работа"
+                certificates:
+                  type: integer
+                  enum: [0, 1]
+                  example: 1
+                  description: "0 - нет, 1 - да"
+      responses:
+        '200':
+          description: Предпочтения успешно обновлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "preferences updated"
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_learning_style:
+                  value:
+                    error:
+                      code: "INVALID_LEARNING_STYLE"
+                      message: "learning_style must be 1, 2 or 3"
+                invalid_skill:
+                  value:
+                    error:
+                      code: "INVALID_SKILL_VALUE"
+                      message: "skill value must be between 0 and 10"
+                invalid_grade:
+                  value:
+                    error:
+                      code: "INVALID_GRADE"
+                      message: "grade must be between 2 and 5"
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me/profile-completion:
+    get:
+      tags:
+        - User
+      summary: Получить статус заполнения профиля
+      description: Возвращает информацию о том, полностью ли заполнен профиль пользователя
+      operationId: getProfileCompletion
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_complete:
+                    type: boolean
+                    example: true
+                    description: "true - профиль полностью заполнен, false - не заполнен"
+                  completed_at:
+                    type: string
+                    format: date-time
+                    example: "2026-04-15T17:47:43.779856Z"
+                    description: Дата и время, когда профиль стал полностью заполненным (если заполнен)
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     ErrorResponse:
@@ -248,6 +492,115 @@ components:
               type: string
               description: Описание ошибки
               example: "invalid request"
+
+    Preferences:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор предпочтений
+        user_id:
+          type: string
+          format: uuid
+          description: ID пользователя
+        professional_goals:
+          type: array
+          items:
+            type: integer
+          description: Массив ID профессиональных целей
+        grades:
+          type: object
+          properties:
+            informatics:
+              type: integer
+              minimum: 2
+              maximum: 5
+            programming:
+              type: integer
+              minimum: 2
+              maximum: 5
+            foreign_language:
+              type: integer
+              minimum: 2
+              maximum: 5
+            physics:
+              type: integer
+              minimum: 2
+              maximum: 5
+            aig:
+              type: integer
+              minimum: 2
+              maximum: 5
+            math_analysis:
+              type: integer
+              minimum: 2
+              maximum: 5
+            algorithms_data_structures:
+              type: integer
+              minimum: 2
+              maximum: 5
+            databases:
+              type: integer
+              minimum: 2
+              maximum: 5
+            discrete_math:
+              type: integer
+              minimum: 2
+              maximum: 5
+        skills:
+          type: object
+          properties:
+            databases:
+              type: integer
+              minimum: 0
+              maximum: 10
+            system_architecture:
+              type: integer
+              minimum: 0
+              maximum: 10
+            algorithmic_programming:
+              type: integer
+              minimum: 0
+              maximum: 10
+            public_speaking:
+              type: integer
+              minimum: 0
+              maximum: 10
+            testing:
+              type: integer
+              minimum: 0
+              maximum: 10
+            analytics:
+              type: integer
+              minimum: 0
+              maximum: 10
+            machine_learning:
+              type: integer
+              minimum: 0
+              maximum: 10
+            os_knowledge:
+              type: integer
+              minimum: 0
+              maximum: 10
+            research_projects:
+              type: integer
+              minimum: 0
+              maximum: 10
+        learning_style:
+          type: integer
+          enum: [1, 2, 3]
+          description: "1 - практика, 2 - теория, 3 - проектная работа"
+        certificates:
+          type: integer
+          enum: [0, 1]
+          description: "0 - нет, 1 - да"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
   securitySchemes:
     BearerAuth:
