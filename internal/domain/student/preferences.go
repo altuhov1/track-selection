@@ -55,8 +55,7 @@ func GenerateRandomGrades() Grades {
 }
 
 func randomGrade() int {
-	// Оценки: 2, 3, 4, 5
-	return []int{2, 3, 4, 5}[time.Now().Nanosecond()%4]
+	return []int{4, 5}[time.Now().Nanosecond()%2]
 }
 
 // Validate validates all preferences fields

@@ -43,10 +43,10 @@ export async function login(email, password) {
   return user
 }
 
-export async function register(first_name, last_name, email, password) {
+export async function register(first_name, last_name, email, password, role = 'student') {
   await apiFetch('/register', {
     method: 'POST',
-    body: JSON.stringify({ first_name, last_name, email, password, role: 'student' }),
+    body: JSON.stringify({ first_name, last_name, email, password, role }),
   })
   return login(email, password)
 }

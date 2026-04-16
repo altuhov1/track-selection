@@ -22,6 +22,7 @@ export default function Modal({ initialTab, onClose, onSuccess }) {
   const [regLastName, setRegLastName]   = useState('')
   const [regEmail, setRegEmail]         = useState('')
   const [regPassword, setRegPassword]   = useState('')
+  const [regRole, setRegRole]           = useState('student')
 
   const handleClose = useCallback(() => {
     if (!loading) onClose()
@@ -69,7 +70,7 @@ export default function Modal({ initialTab, onClose, onSuccess }) {
     }
     setError(''); setLoading(true)
     try {
-      const user = await register(regFirstName, regLastName, regEmail, regPassword)
+      const user = await register(regFirstName, regLastName, regEmail, regPassword, regRole)
       onSuccess(user)
     } catch (err) {
       setError(ERROR_MESSAGES[err.code] || err.message || 'Ошибка регистрации')
@@ -157,6 +158,25 @@ export default function Modal({ initialTab, onClose, onSuccess }) {
                 value={regPassword} onChange={(e) => setRegPassword(e.target.value)}
                 autoComplete="new-password" required minLength={6}
               />
+            </div>
+            <div className="form-group">
+              <label>Роль <small style={{ color: 'var(--text-muted)' }}>временно</small></label>
+              <div className="role-switch">
+                <button
+                  type="button"
+                  className={`role-option${regRole === 'student' ? ' role-option--active' : ''}`}
+                  onClick={() => setRegRole('student')}
+                >
+                  Студент
+                </button>
+                <button
+                  type="button"
+                  className={`role-option${regRole === 'admin' ? ' role-option--active' : ''}`}
+                  onClick={() => setRegRole('admin')}
+                >
+                  Администратор
+                </button>
+              </div>
             </div>
             <button type="submit" className="btn btn-primary form-submit" disabled={loading}>
               {loading ? 'Загрузка...' : 'Создать аккаунт'}
