@@ -11,6 +11,7 @@ import (
 	"track-selection/internal/application/auth"
 	authApp "track-selection/internal/application/auth"
 	studApp "track-selection/internal/application/student"
+	"track-selection/internal/application/track"
 	"track-selection/internal/config"
 	authDomain "track-selection/internal/domain/auth"
 	"track-selection/internal/domain/shared/events"
@@ -44,6 +45,7 @@ type Infrastructure struct {
 	AdminRepo             *postgres.AdminRepository
 	PreferencesRepo       *postgres.PreferencesRepository
 	ProfileCompletionRepo *postgres.ProfileCompletionRepository
+	TrackRepo             *postgres.TrackRepository
 
 	// Технические сервисы
 	JwtService authDomain.JWTService
@@ -62,6 +64,11 @@ type UseCases struct {
 	UpdatePreferencesUC    *studApp.UpdatePreferencesUseCase
 	GetPreferencesUC       *studApp.GetPreferencesUseCase
 	GetProfileCompletionUC *studApp.GetProfileCompletionUseCase
+
+	GetAllTracksUC *track.GetAllTracksUseCase
+	CreateTrackUC  *track.CreateTrackUseCase
+	UpdateTrackUC  *track.UpdateTrackUseCase
+	DeleteTrackUC  *track.DeleteTrackUseCase
 }
 
 func NewApp(cfg *config.ConfigApp) *App {
@@ -106,6 +113,10 @@ func (a *App) initInfrastructure() {
 	a.infra.AdminRepo = postgres.NewAdminRepository(poolPG)
 	a.infra.PreferencesRepo = postgres.NewPreferencesRepository(poolPG)
 	a.infra.ProfileCompletionRepo = postgres.NewProfileCompletionRepository(poolPG)
+	a.infra.TrackRepo = postgres.NewTrackRepository(poolPG)
+
+	// Создаем дефолтные треки
+	postgres.SeedTracks(a.rootCtx, a.infra.TrackRepo)
 
 	// 3. JWT сервис
 	if a.cfg.Jwt_secret_key == "" {
@@ -162,7 +173,10 @@ func (a *App) initUseCases() {
 
 	a.useCases.GetPreferencesUC = studApp.NewGetPreferencesUseCase(a.infra.PreferencesRepo)
 	a.useCases.GetProfileCompletionUC = studApp.NewGetProfileCompletionUseCase(a.infra.ProfileCompletionRepo)
-
+	a.useCases.GetAllTracksUC = track.NewGetAllTracksUseCase(a.infra.TrackRepo)
+	a.useCases.CreateTrackUC = track.NewCreateTrackUseCase(a.infra.TrackRepo)
+	a.useCases.UpdateTrackUC = track.NewUpdateTrackUseCase(a.infra.TrackRepo)
+	a.useCases.DeleteTrackUC = track.NewDeleteTrackUseCase(a.infra.TrackRepo)
 	slog.Info("Use Cases initialized")
 }
 
@@ -174,6 +188,10 @@ func (a *App) initHTTP() {
 		a.useCases.UpdatePreferencesUC,
 		a.useCases.GetPreferencesUC,
 		a.useCases.GetProfileCompletionUC,
+		a.useCases.GetAllTracksUC,
+		a.useCases.CreateTrackUC,
+		a.useCases.UpdateTrackUC,
+		a.useCases.DeleteTrackUC,
 	)
 
 	router := a.setupRoutes(handler)
@@ -194,12 +212,16 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	// Публичные эндпоинты (без аутентификации)
 	r.HandleFunc("/api/register", handler.Register).Methods(http.MethodPost)
 	r.HandleFunc("/api/login", handler.Login).Methods(http.MethodPost)
+	r.HandleFunc("/api/all-tracks", handler.GetAllTracks).Methods(http.MethodGet)
 
 	// Защищенные эндпоинты (с аутентификацией)
 	r.HandleFunc("/api/me", middleware.WithAuth(a.infra.JwtService, handler.GetMe, middleware.RoleAny)).Methods(http.MethodGet)
 	r.HandleFunc("/api/me/edit-info", middleware.WithAuth(a.infra.JwtService, handler.UpdatePreferences, middleware.RoleAny)).Methods(http.MethodPost)
 	r.HandleFunc("/api/me/info", middleware.WithAuth(a.infra.JwtService, handler.GetPreferences, middleware.RoleAny)).Methods(http.MethodGet)
 	r.HandleFunc("/api/me/profile-completion", middleware.WithAuth(a.infra.JwtService, handler.GetProfileCompletion, middleware.RoleAny)).Methods(http.MethodGet)
+	r.HandleFunc("/api/new-track", middleware.WithAuth(a.infra.JwtService, handler.CreateTrack, middleware.RoleAdmin)).Methods(http.MethodPost)
+	r.HandleFunc("/api/edit-track/{id}", middleware.WithAuth(a.infra.JwtService, handler.UpdateTrack, middleware.RoleAdmin)).Methods(http.MethodPut)
+	r.HandleFunc("/api/delete-track/{id}", middleware.WithAuth(a.infra.JwtService, handler.DeleteTrack, middleware.RoleAdmin)).Methods(http.MethodDelete)
 
 	return middleware.ContextMiddleware(a.rootCtx, r)
 }

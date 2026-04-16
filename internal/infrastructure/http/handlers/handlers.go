@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"track-selection/internal/application/auth"
 	"track-selection/internal/application/student"
+	"track-selection/internal/application/track"
 )
 
 type Handler struct {
@@ -13,6 +14,10 @@ type Handler struct {
 	updatePreferencesUC    *student.UpdatePreferencesUseCase
 	getPreferencesUC       *student.GetPreferencesUseCase
 	getProfileCompletionUC *student.GetProfileCompletionUseCase
+	getAllTracksUC         *track.GetAllTracksUseCase
+	createTrackUC          *track.CreateTrackUseCase
+	updateTrackUC          *track.UpdateTrackUseCase
+	deleteTrackUC          *track.DeleteTrackUseCase
 }
 
 func NewHandler(
@@ -20,7 +25,11 @@ func NewHandler(
 	loginUC *auth.LoginUseCase,
 	updatePreferencesUC *student.UpdatePreferencesUseCase,
 	getPreferencesUC *student.GetPreferencesUseCase,
-	getProfileCompletionUC *student.GetProfileCompletionUseCase, // ← добавить
+	getProfileCompletionUC *student.GetProfileCompletionUseCase,
+	getAllUC *track.GetAllTracksUseCase,
+	createUC *track.CreateTrackUseCase,
+	updateUC *track.UpdateTrackUseCase,
+	deleteUC *track.DeleteTrackUseCase,
 ) *Handler {
 	return &Handler{
 		registerUC:             registerUC,
@@ -28,6 +37,10 @@ func NewHandler(
 		updatePreferencesUC:    updatePreferencesUC,
 		getPreferencesUC:       getPreferencesUC,
 		getProfileCompletionUC: getProfileCompletionUC, // ← добавить
+		getAllTracksUC:         getAllUC,
+		createTrackUC:          createUC,
+		updateTrackUC:          updateUC,
+		deleteTrackUC:          deleteUC,
 	}
 }
 

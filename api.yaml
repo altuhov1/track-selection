@@ -20,14 +20,16 @@ tags:
     description: Информация о пользователе
   - name: Preferences
     description: Предпочтения пользователя
+  - name: Tracks
+    description: Управление образовательными треками
 
 paths:
+  # ==================== AUTH ====================
   /register:
     post:
       tags:
         - Auth
       summary: Регистрация нового пользователя
-      description: Создает нового пользователя (студента или администратора)
       operationId: registerUser
       requestBody:
         required: true
@@ -46,27 +48,22 @@ paths:
                   type: string
                   format: email
                   example: "ivan@example.com"
-                  description: Email пользователя (должен быть уникальным)
                 password:
                   type: string
                   minLength: 6
                   example: "password123"
-                  description: Пароль (минимум 6 символов)
                 role:
                   type: string
                   enum:
                     - student
                     - admin
                   example: "student"
-                  description: Роль пользователя
                 first_name:
                   type: string
                   example: "Иван"
-                  description: Имя пользователя
                 last_name:
                   type: string
                   example: "Петров"
-                  description: Фамилия пользователя
       responses:
         '201':
           description: Пользователь успешно создан
@@ -84,35 +81,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                weak_password:
-                  summary: Слабый пароль
-                  value:
-                    error:
-                      code: "WEAK_PASSWORD"
-                      message: "password must be at least 6 characters"
-                invalid_email:
-                  summary: Невалидный email
-                  value:
-                    error:
-                      code: "INVALID_EMAIL"
-                      message: "invalid email address"
-                invalid_role:
-                  summary: Несуществующая роль
-                  value:
-                    error:
-                      code: "INVALID_ROLE"
-                      message: "invalid role"
         '409':
           description: Пользователь уже существует
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  code: "EMAIL_EXISTS"
-                  message: "email already exists"
         '500':
           description: Внутренняя ошибка сервера
           content:
@@ -125,7 +99,6 @@ paths:
       tags:
         - Auth
       summary: Вход в систему
-      description: Аутентификация пользователя и получение JWT токена
       operationId: loginUser
       requestBody:
         required: true
@@ -141,11 +114,9 @@ paths:
                   type: string
                   format: email
                   example: "ivan@example.com"
-                  description: Email пользователя
                 password:
                   type: string
                   example: "password123"
-                  description: Пароль пользователя
       responses:
         '200':
           description: Успешный вход
@@ -157,17 +128,12 @@ paths:
                   token:
                     type: string
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                    description: JWT токен для авторизации
         '401':
           description: Неверные учетные данные
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  code: "UNAUTHORIZED"
-                  message: "invalid credentials"
         '500':
           description: Внутренняя ошибка сервера
           content:
@@ -175,12 +141,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ==================== USER ====================
   /me:
     get:
       tags:
         - User
       summary: Получить информацию о текущем пользователе
-      description: Возвращает данные пользователя из JWT токена (без запроса в БД)
       operationId: getCurrentUser
       security:
         - BearerAuth: []
@@ -195,51 +161,57 @@ paths:
                   id:
                     type: string
                     format: uuid
-                    example: "550e8400-e29b-41d4-a716-446655440000"
-                    description: UUID пользователя
                   email:
                     type: string
                     format: email
-                    example: "ivan@example.com"
-                    description: Email пользователя
                   first_name:
                     type: string
-                    example: "Иван"
-                    description: Имя пользователя
                   last_name:
                     type: string
-                    example: "Петров"
-                    description: Фамилия пользователя
                   role:
                     type: string
-                    enum:
-                      - student
-                      - admin
-                    example: "student"
-                    description: Роль пользователя
+                    enum: [student, admin]
         '401':
           description: Не авторизован
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  code: "UNAUTHORIZED"
-                  message: "invalid or expired token"
-        '500':
-          description: Внутренняя ошибка сервера
+
+  /me/profile-completion:
+    get:
+      tags:
+        - User
+      summary: Получить статус заполнения профиля
+      operationId: getProfileCompletion
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_complete:
+                    type: boolean
+                  completed_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: Не авторизован
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ==================== PREFERENCES ====================
   /me/info:
     get:
       tags:
         - Preferences
       summary: Получить предпочтения пользователя
-      description: Возвращает все предпочтения пользователя (профессиональные цели, оценки, навыки, стиль обучения)
       operationId: getUserPreferences
       security:
         - BearerAuth: []
@@ -256,19 +228,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Внутренняя ошибка сервера
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   /me/edit-info:
     post:
       tags:
         - Preferences
       summary: Обновить предпочтения пользователя
-      description: Частичное или полное обновление предпочтений. Можно передать только часть полей.
       operationId: updateUserPreferences
       security:
         - BearerAuth: []
@@ -283,114 +248,16 @@ paths:
                   type: array
                   items:
                     type: integer
-                  example: [1, 2, 3]
-                  description: ID профессиональных целей
                 grades:
-                  type: object
-                  properties:
-                    informatics:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
-                    programming:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
-                    foreign_language:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 3
-                    physics:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
-                    aig:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
-                    math_analysis:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
-                    algorithms_data_structures:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
-                    databases:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
-                    discrete_math:
-                      type: integer
-                      minimum: 2
-                      maximum: 5
-                      example: 4
+                  $ref: '#/components/schemas/Grades'
                 skills:
-                  type: object
-                  properties:
-                    databases:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 8
-                    system_architecture:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 7
-                    algorithmic_programming:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 6
-                    public_speaking:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 5
-                    testing:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 7
-                    analytics:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 8
-                    machine_learning:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 4
-                    os_knowledge:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 6
-                    research_projects:
-                      type: integer
-                      minimum: 0
-                      maximum: 10
-                      example: 7
+                  $ref: '#/components/schemas/Skills'
                 learning_style:
                   type: integer
                   enum: [1, 2, 3]
-                  example: 2
-                  description: "1 - практика, 2 - теория, 3 - проектная работа"
                 certificates:
                   type: integer
                   enum: [0, 1]
-                  example: 1
-                  description: "0 - нет, 1 - да"
       responses:
         '200':
           description: Предпочтения успешно обновлены
@@ -401,35 +268,35 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "preferences updated"
         '400':
           description: Ошибка валидации
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalid_learning_style:
-                  value:
-                    error:
-                      code: "INVALID_LEARNING_STYLE"
-                      message: "learning_style must be 1, 2 or 3"
-                invalid_skill:
-                  value:
-                    error:
-                      code: "INVALID_SKILL_VALUE"
-                      message: "skill value must be between 0 and 10"
-                invalid_grade:
-                  value:
-                    error:
-                      code: "INVALID_GRADE"
-                      message: "grade must be between 2 and 5"
         '401':
           description: Не авторизован
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== TRACKS ====================
+  /all-tracks:
+    get:
+      tags:
+        - Tracks
+      summary: Получить все треки (публичный)
+      operationId: getAllTracks
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Track'
         '500':
           description: Внутренняя ошибка сервера
           content:
@@ -437,40 +304,197 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /me/profile-completion:
-    get:
+  /new-track:
+    post:
       tags:
-        - User
-      summary: Получить статус заполнения профиля
-      description: Возвращает информацию о том, полностью ли заполнен профиль пользователя
-      operationId: getProfileCompletion
+        - Tracks
+      summary: Создать новый трек (только admin)
+      operationId: createTrack
       security:
         - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTrackInput'
       responses:
-        '200':
-          description: Успешный ответ
+        '201':
+          description: Трек успешно создан
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  is_complete:
-                    type: boolean
-                    example: true
-                    description: "true - профиль полностью заполнен, false - не заполнен"
-                  completed_at:
-                    type: string
-                    format: date-time
-                    example: "2026-04-15T17:47:43.779856Z"
-                    description: Дата и время, когда профиль стал полностью заполненным (если заполнен)
+                $ref: '#/components/schemas/Track'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Не авторизован
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Внутренняя ошибка сервера
+        '403':
+          description: Доступ запрещен (требуется роль admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /edit-track/{id}:
+    put:
+      tags:
+        - Tracks
+      summary: Обновить трек (только admin)
+      operationId: updateTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                curriculum:
+                  $ref: '#/components/schemas/Curriculum'
+                requirements:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Requirement'
+                teachers:
+                  type: array
+                  items:
+                    type: string
+                difficulty:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                type:
+                  type: integer
+                  description: "Тип трека для фронтенда"
+                employment_prospects:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                alumni_reviews:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                web_link:
+                  type: string
+                has_certificates:
+                  type: integer
+                  enum: [0, 1]
+                learning_style:
+                  type: integer
+                  enum: [1, 2, 3]
+                desired_tech_skills:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                desired_math_skills:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                desired_soft_skills:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                professional_goals:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Трек успешно обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "track updated"
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Доступ запрещен (требуется роль admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Трек не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /delete-track/{id}:
+    delete:
+      tags:
+        - Tracks
+      summary: Удалить трек (только admin)
+      operationId: deleteTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Трек успешно удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "track deleted"
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Доступ запрещен (требуется роль admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Трек не найден
           content:
             application/json:
               schema:
@@ -486,12 +510,88 @@ components:
           properties:
             code:
               type: string
-              description: Код ошибки
-              example: "INVALID_REQUEST"
             message:
               type: string
-              description: Описание ошибки
-              example: "invalid request"
+
+    Grades:
+      type: object
+      properties:
+        informatics:
+          type: integer
+          minimum: 2
+          maximum: 5
+        programming:
+          type: integer
+          minimum: 2
+          maximum: 5
+        foreign_language:
+          type: integer
+          minimum: 2
+          maximum: 5
+        physics:
+          type: integer
+          minimum: 2
+          maximum: 5
+        aig:
+          type: integer
+          minimum: 2
+          maximum: 5
+        math_analysis:
+          type: integer
+          minimum: 2
+          maximum: 5
+        algorithms_data_structures:
+          type: integer
+          minimum: 2
+          maximum: 5
+        databases:
+          type: integer
+          minimum: 2
+          maximum: 5
+        discrete_math:
+          type: integer
+          minimum: 2
+          maximum: 5
+
+    Skills:
+      type: object
+      properties:
+        databases:
+          type: integer
+          minimum: 0
+          maximum: 10
+        system_architecture:
+          type: integer
+          minimum: 0
+          maximum: 10
+        algorithmic_programming:
+          type: integer
+          minimum: 0
+          maximum: 10
+        public_speaking:
+          type: integer
+          minimum: 0
+          maximum: 10
+        testing:
+          type: integer
+          minimum: 0
+          maximum: 10
+        analytics:
+          type: integer
+          minimum: 0
+          maximum: 10
+        machine_learning:
+          type: integer
+          minimum: 0
+          maximum: 10
+        os_knowledge:
+          type: integer
+          minimum: 0
+          maximum: 10
+        research_projects:
+          type: integer
+          minimum: 0
+          maximum: 10
 
     Preferences:
       type: object
@@ -499,102 +599,23 @@ components:
         id:
           type: string
           format: uuid
-          description: Уникальный идентификатор предпочтений
         user_id:
           type: string
           format: uuid
-          description: ID пользователя
         professional_goals:
           type: array
           items:
             type: integer
-          description: Массив ID профессиональных целей
         grades:
-          type: object
-          properties:
-            informatics:
-              type: integer
-              minimum: 2
-              maximum: 5
-            programming:
-              type: integer
-              minimum: 2
-              maximum: 5
-            foreign_language:
-              type: integer
-              minimum: 2
-              maximum: 5
-            physics:
-              type: integer
-              minimum: 2
-              maximum: 5
-            aig:
-              type: integer
-              minimum: 2
-              maximum: 5
-            math_analysis:
-              type: integer
-              minimum: 2
-              maximum: 5
-            algorithms_data_structures:
-              type: integer
-              minimum: 2
-              maximum: 5
-            databases:
-              type: integer
-              minimum: 2
-              maximum: 5
-            discrete_math:
-              type: integer
-              minimum: 2
-              maximum: 5
+          $ref: '#/components/schemas/Grades'
         skills:
-          type: object
-          properties:
-            databases:
-              type: integer
-              minimum: 0
-              maximum: 10
-            system_architecture:
-              type: integer
-              minimum: 0
-              maximum: 10
-            algorithmic_programming:
-              type: integer
-              minimum: 0
-              maximum: 10
-            public_speaking:
-              type: integer
-              minimum: 0
-              maximum: 10
-            testing:
-              type: integer
-              minimum: 0
-              maximum: 10
-            analytics:
-              type: integer
-              minimum: 0
-              maximum: 10
-            machine_learning:
-              type: integer
-              minimum: 0
-              maximum: 10
-            os_knowledge:
-              type: integer
-              minimum: 0
-              maximum: 10
-            research_projects:
-              type: integer
-              minimum: 0
-              maximum: 10
+          $ref: '#/components/schemas/Skills'
         learning_style:
           type: integer
           enum: [1, 2, 3]
-          description: "1 - практика, 2 - теория, 3 - проектная работа"
         certificates:
           type: integer
           enum: [0, 1]
-          description: "0 - нет, 1 - да"
         created_at:
           type: string
           format: date-time
@@ -602,12 +623,216 @@ components:
           type: string
           format: date-time
 
+    # ==================== TRACK SCHEMAS ====================
+    Course:
+      type: object
+      description: Информация о курсе в семестре
+      properties:
+        name:
+          type: string
+          description: Название курса
+          example: "Введение в программирование"
+        description:
+          type: string
+          description: Описание курса
+          example: "Основы Go, синтаксис, переменные, функции"
+        is_elective:
+          type: boolean
+          description: "false - обязательный курс, true - курс по выбору"
+          example: false
+        options:
+          type: array
+          description: "Варианты выбора (если is_elective = true)"
+          items:
+            type: string
+          example: ["A2", "B1", "B2"]
+
+    Semester:
+      type: object
+      description: Семестр с курсами
+      properties:
+        number:
+          type: integer
+          description: Номер семестра
+          example: 1
+        courses:
+          type: array
+          description: Список курсов в семестре
+          items:
+            $ref: '#/components/schemas/Course'
+
+    Curriculum:
+      type: object
+      description: Учебный план, разбитый по семестрам
+      properties:
+        semesters:
+          type: array
+          description: Массив семестров
+          items:
+            $ref: '#/components/schemas/Semester'
+
+    Requirement:
+      type: object
+      properties:
+        subject:
+          type: string
+          description: Название предмета
+          example: "programming"
+        min_grade:
+          type: integer
+          minimum: 2
+          maximum: 5
+          description: Минимальная оценка для поступления
+          example: 4
+
+    Track:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        curriculum:
+          $ref: '#/components/schemas/Curriculum'
+        requirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Requirement'
+        teachers:
+          type: array
+          items:
+            type: string
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: "Сложность трека (1 - легкий, 5 - очень сложный)"
+          example: 3
+        type:
+          type: integer
+          description: "Тип трека для фронтенда (1 - технический, 2 - аналитический и т.д.)"
+          example: 1
+        employment_prospects:
+          type: integer
+          minimum: 1
+          maximum: 10
+        alumni_reviews:
+          type: integer
+          minimum: 1
+          maximum: 10
+        web_link:
+          type: string
+        has_certificates:
+          type: integer
+          enum: [0, 1]
+        learning_style:
+          type: integer
+          enum: [1, 2, 3]
+        desired_tech_skills:
+          type: integer
+          minimum: 1
+          maximum: 10
+        desired_math_skills:
+          type: integer
+          minimum: 1
+          maximum: 10
+        desired_soft_skills:
+          type: integer
+          minimum: 1
+          maximum: 10
+        professional_goals:
+          type: array
+          items:
+            type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateTrackInput:
+      type: object
+      required:
+        - name
+        - description
+        - curriculum
+        - requirements
+        - teachers
+        - difficulty
+        - type
+        - employment_prospects
+        - alumni_reviews
+        - learning_style
+        - desired_tech_skills
+        - desired_math_skills
+        - desired_soft_skills
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        curriculum:
+          $ref: '#/components/schemas/Curriculum'
+        requirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Requirement'
+        teachers:
+          type: array
+          items:
+            type: string
+        difficulty:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: "Сложность трека (1 - легкий, 5 - очень сложный)"
+          example: 3
+        type:
+          type: integer
+          description: "Тип трека для фронтенда"
+          example: 1
+        employment_prospects:
+          type: integer
+          minimum: 1
+          maximum: 10
+        alumni_reviews:
+          type: integer
+          minimum: 1
+          maximum: 10
+        web_link:
+          type: string
+        has_certificates:
+          type: integer
+          enum: [0, 1]
+        learning_style:
+          type: integer
+          enum: [1, 2, 3]
+        desired_tech_skills:
+          type: integer
+          minimum: 1
+          maximum: 10
+        desired_math_skills:
+          type: integer
+          minimum: 1
+          maximum: 10
+        desired_soft_skills:
+          type: integer
+          minimum: 1
+          maximum: 10
+        professional_goals:
+          type: array
+          items:
+            type: integer
+
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT токен для авторизации (получается при логине)
 
 security:
   - BearerAuth: []
