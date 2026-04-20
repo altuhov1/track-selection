@@ -12,26 +12,30 @@ import (
 
 // RegisterInput — входные данные
 type RegisterInput struct {
-	Email     string
-	Password  string
-	Role      string
-	FirstName string
-	LastName  string
+	Email       string
+	Password    string
+	Role        string
+	FirstName   string
+	LastName    string
+	AdminSecret string
 }
 
 // RegisterUseCase — Use Case регистрации
 type RegisterUseCase struct {
-	authRepo auth.AuthUserRepository
-	eventBus events.EventBus
+	authRepo       auth.AuthUserRepository
+	eventBus       events.EventBus
+	adminSecretKey string
 }
 
 func NewRegisterUseCase(
 	authRepo auth.AuthUserRepository,
 	eventBus events.EventBus,
+	adminSecretKey string,
 ) *RegisterUseCase {
 	return &RegisterUseCase{
-		authRepo: authRepo,
-		eventBus: eventBus,
+		authRepo:       authRepo,
+		eventBus:       eventBus,
+		adminSecretKey: adminSecretKey,
 	}
 }
 
@@ -45,7 +49,14 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) err
 	default:
 		return errors.ErrInvalidRole
 	}
-
+	if role == auth.RoleAdmin {
+		if input.AdminSecret == "" {
+			return errors.ErrAdminSecretRequired
+		}
+		if input.AdminSecret != uc.adminSecretKey {
+			return errors.ErrInvalidAdminSecret
+		}
+	}
 	email, err := value_objects.NewEmail(input.Email)
 	if err != nil {
 		return err

@@ -163,6 +163,7 @@ func (a *App) initUseCases() {
 	a.useCases.RegisterUC = auth.NewRegisterUseCase(
 		a.infra.AuthRepo,
 		a.eventBus,
+		a.cfg.Admin_secret_key,
 	)
 
 	a.useCases.LoginUC = auth.NewLoginUseCase(

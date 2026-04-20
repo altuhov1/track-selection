@@ -9,15 +9,16 @@ import (
 )
 
 type ConfigApp struct {
-	PG_DBHost      string `env:"PG_HOST" envDefault:"postgres"`
-	PG_DBUser      string `env:"PG_USERNAME_FOR_APP" envDefault:""`
-	PG_DBPassword  string `env:"PG_USERPASS_FOR_APP" envDefault:""`
-	PG_DBName      string `env:"STANDART_PG_DB_NAME" envDefault:""`
-	PG_DBSSLMode   string `env:"PG_SSLMODE" envDefault:"disable"`
-	PG_PORT        string `env:"PG_PORT" envDefault:"5432"`
-	Logs_Level     string `env:"LOGS_LEVEL_APP" envDefault:"INFO"`
-	App_port       string `env:"APP_PORT" envDefault:"8080"`
-	Jwt_secret_key string `env:"JWT_SECRET_KEY" envDefault:""`
+	PG_DBHost        string `env:"PG_HOST" envDefault:"postgres"`
+	PG_DBUser        string `env:"PG_USERNAME_FOR_APP" envDefault:""`
+	PG_DBPassword    string `env:"PG_USERPASS_FOR_APP" envDefault:""`
+	PG_DBName        string `env:"STANDART_PG_DB_NAME" envDefault:""`
+	PG_DBSSLMode     string `env:"PG_SSLMODE" envDefault:"disable"`
+	PG_PORT          string `env:"PG_PORT" envDefault:"5432"`
+	Logs_Level       string `env:"LOGS_LEVEL_APP" envDefault:"INFO"`
+	App_port         string `env:"APP_PORT" envDefault:"8080"`
+	Jwt_secret_key   string `env:"JWT_SECRET_KEY" envDefault:""`
+	Admin_secret_key string `env:"ADMIN_SECRET_KEY" envDefault:""`
 }
 
 func MustLoadConfigApp() *ConfigApp {

@@ -34,6 +34,9 @@ paths:
       tags:
         - Auth
       summary: Регистрация нового пользователя
+      description: |
+        Регистрация студента или администратора.
+        Для регистрации администратора требуется передать `admin_secret`.
       operationId: registerUser
       requestBody:
         required: true
@@ -68,6 +71,10 @@ paths:
                 last_name:
                   type: string
                   example: Петров
+                admin_secret:
+                  type: string
+                  description: Секретный ключ для регистрации администратора (обязателен при role=admin)
+                  example: your_super_secret_admin_key_here
       responses:
         '201':
           description: Пользователь успешно создан
@@ -85,6 +92,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                admin_secret_required:
+                  summary: Требуется секретный ключ для админа
+                  value:
+                    error:
+                      code: ADMIN_SECRET_REQUIRED
+                      message: admin secret key is required
+                invalid_admin_secret:
+                  summary: Неверный секретный ключ
+                  value:
+                    error:
+                      code: INVALID_ADMIN_SECRET
+                      message: invalid admin secret key
         '409':
           description: Пользователь уже существует
           content:

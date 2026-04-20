@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { login, register } from '../services/auth'
 
 const ERROR_MESSAGES = {
-  UNAUTHORIZED:  'Неверный email или пароль',
-  EMAIL_EXISTS:  'Этот email уже зарегистрирован',
-  WEAK_PASSWORD: 'Пароль должен быть не менее 6 символов',
-  INVALID_EMAIL: 'Некорректный email адрес',
+  UNAUTHORIZED:          'Неверный email или пароль',
+  EMAIL_EXISTS:          'Этот email уже зарегистрирован',
+  WEAK_PASSWORD:         'Пароль должен быть не менее 6 символов',
+  INVALID_EMAIL:         'Некорректный email адрес',
+  ADMIN_SECRET_REQUIRED: 'Введите секретный ключ администратора',
+  INVALID_ADMIN_SECRET:  'Неверный секретный ключ администратора',
 }
 
 export default function Modal({ initialTab, onClose, onSuccess }) {
@@ -23,6 +25,7 @@ export default function Modal({ initialTab, onClose, onSuccess }) {
   const [regEmail, setRegEmail]         = useState('')
   const [regPassword, setRegPassword]   = useState('')
   const [regRole, setRegRole]           = useState('student')
+  const [regAdminSecret, setRegAdminSecret] = useState('')
 
   const handleClose = useCallback(() => {
     if (!loading) onClose()
@@ -65,12 +68,15 @@ export default function Modal({ initialTab, onClose, onSuccess }) {
     if (!regFirstName || !regLastName || !regEmail || !regPassword) {
       setError('Заполните все поля'); return
     }
+    if (regRole === 'admin' && !regAdminSecret) {
+      setError('Введите секретный ключ администратора'); return
+    }
     if (regPassword.length < 6) {
       setError('Пароль должен быть не менее 6 символов'); return
     }
     setError(''); setLoading(true)
     try {
-      const user = await register(regFirstName, regLastName, regEmail, regPassword, regRole)
+      const user = await register(regFirstName, regLastName, regEmail, regPassword, regRole, regAdminSecret)
       onSuccess(user)
     } catch (err) {
       setError(ERROR_MESSAGES[err.code] || err.message || 'Ошибка регистрации')
@@ -160,12 +166,12 @@ export default function Modal({ initialTab, onClose, onSuccess }) {
               />
             </div>
             <div className="form-group">
-              <label>Роль <small style={{ color: 'var(--text-muted)' }}>временно</small></label>
+              <label>Роль</label>
               <div className="role-switch">
                 <button
                   type="button"
                   className={`role-option${regRole === 'student' ? ' role-option--active' : ''}`}
-                  onClick={() => setRegRole('student')}
+                  onClick={() => { setRegRole('student'); setRegAdminSecret('') }}
                 >
                   Студент
                 </button>
@@ -178,6 +184,16 @@ export default function Modal({ initialTab, onClose, onSuccess }) {
                 </button>
               </div>
             </div>
+            {regRole === 'admin' && (
+              <div className="form-group">
+                <label htmlFor="reg-admin-secret">Секретный ключ администратора</label>
+                <input
+                  id="reg-admin-secret" type="password" placeholder="••••••••"
+                  value={regAdminSecret} onChange={(e) => setRegAdminSecret(e.target.value)}
+                  autoComplete="off" required
+                />
+              </div>
+            )}
             <button type="submit" className="btn btn-primary form-submit" disabled={loading}>
               {loading ? 'Загрузка...' : 'Создать аккаунт'}
             </button>

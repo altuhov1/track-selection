@@ -14,11 +14,12 @@ type AuthHandler struct {
 }
 
 type RegisterRequest struct {
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	Role      string `json:"role"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	Role        string `json:"role"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	AdminSecret string `json:"admin_secret,omitempty"`
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -40,11 +41,12 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Вызываем Use Case
 	err := h.registerUC.Execute(r.Context(), auth.RegisterInput{
-		Email:     req.Email,
-		Password:  req.Password,
-		Role:      req.Role,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
+		Email:       req.Email,
+		Password:    req.Password,
+		Role:        req.Role,
+		FirstName:   req.FirstName,
+		LastName:    req.LastName,
+		AdminSecret: req.AdminSecret,
 	})
 
 	if err != nil {
@@ -57,12 +59,12 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			sendError(w, http.StatusBadRequest, "INVALID_EMAIL", "invalid email format")
 		case errors.ErrInvalidRole:
 			sendError(w, http.StatusBadRequest, "INVALID_ROLE", "invalid role")
+		case errors.ErrAdminSecretRequired:
+			sendError(w, http.StatusBadRequest, "ADMIN_SECRET_REQUIRED", err.Error())
+		case errors.ErrInvalidAdminSecret:
+			sendError(w, http.StatusBadRequest, "INVALID_ADMIN_SECRET", err.Error())
 		default:
-			if err.Error() == "password must be at least 6 characters" {
-				sendError(w, http.StatusBadRequest, "WEAK_PASSWORD", err.Error())
-			} else {
-				sendError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error")
-			}
+			sendError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal error")
 		}
 		return
 	}

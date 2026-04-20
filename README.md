@@ -191,6 +191,7 @@ track-selection/
 | `APP_PORT`              | Порт Go-приложения (обычно `8080`)                 |
 | `NGINX_PORT`            | Внешний порт Nginx                                 |
 | `JWT_SECRET_KEY`        | Секрет для подписи JWT-токенов                     |
+| `ADMIN_SECRET_KEY`      | Секретный ключ для регистрации администраторов — без него зарегистрироваться с ролью `admin` невозможно |
 | `LOGS_LEVEL_APP`        | Уровень логирования приложения (`INFO`, `DEBUG`, `WARN`, `ERROR`) |
 | `LOGS_LEVEL_MIGRATE`    | Уровень логирования миграций                       |
 
@@ -203,12 +204,9 @@ track-selection/
 ```bash
 git clone <repo-url>
 cd track-selection
-
-# Создать .env на основе примера
 cp .env.example .env
-# Отредактировать .env при необходимости
+# Отредактировать .env, надо ввести ADMIN_SECRET_KEY
 
-# Запустить все сервисы (postgres → migrate → app → nginx)
 docker-compose up --build
 ```
 
@@ -248,18 +246,6 @@ docker compose run --rm migrate reset
 docker compose run --rm migrate version
 ```
 
----
-
-## E2E тесты
-
-Требуется запущенный бэкенд на порту `:8080`.
-
-```bash
-make e2e-auth       # Тесты аутентификации
-make e2e-student    # Тесты профиля студента
-make e2e-tracks     # Тесты CRUD треков (admin)
-make e2e-recomm     # Тесты рекомендаций и выбора трека
-```
 
 ---
 

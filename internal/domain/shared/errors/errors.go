@@ -16,4 +16,6 @@ var (
 	ErrInvalidLearningStyle = errors.New("val must be between 1 and 3")
 	ErrInvalidCertificate   = errors.New("val must be between 0 and 1")
 	ErrProfileNotComplete   = errors.New("profile is not complete enough for recommendations")
+	ErrAdminSecretRequired  = errors.New("admin secret key is required")
+	ErrInvalidAdminSecret   = errors.New("invalid admin secret key")
 )

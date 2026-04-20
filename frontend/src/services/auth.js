@@ -43,10 +43,9 @@ export async function login(email, password) {
   return user
 }
 
-export async function register(first_name, last_name, email, password, role = 'student') {
-  await apiFetch('/register', {
-    method: 'POST',
-    body: JSON.stringify({ first_name, last_name, email, password, role }),
-  })
+export async function register(first_name, last_name, email, password, role = 'student', admin_secret) {
+  const body = { first_name, last_name, email, password, role }
+  if (role === 'admin' && admin_secret) body.admin_secret = admin_secret
+  await apiFetch('/register', { method: 'POST', body: JSON.stringify(body) })
   return login(email, password)
 }
