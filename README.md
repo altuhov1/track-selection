@@ -11,10 +11,10 @@
 
 - **Язык**: Go (Golang)
 - **API стиль**: RESTful
-- **Архитектура**: Clean Architecture — строгое разделение на слои `domain`, `application`, `infrastructure`, `bootstrap`
+- **Архитектура**: Clean Architecture + DDD + Event-Driven — слои `domain` (агрегаты, value objects, domain events, интерфейсы репозиториев), `application` (use cases), `infrastructure` (HTTP, PostgreSQL, JWT, event bus), `bootstrap` (DI)
 - **HTTP роутер**: `gorilla/mux`
 - **JWT**: `golang-jwt/jwt` — Bearer-токены, время жизни 24 часа
-- **Event Bus**: внутренняя шина событий (in-memory) — при регистрации автоматически создаётся профиль студента/администратора и запись о прогрессе заполнения профиля
+- **Event Bus**: внутренняя шина событий (in-memory)
 - **Миграции**: `pressly/goose` — версионированные SQL-миграции
 - **Graceful Shutdown**: корректное завершение по `SIGTERM` / `Ctrl+C`
 
@@ -265,13 +265,45 @@ make e2e-recomm     # Тесты рекомендаций и выбора тре
 
 ## Архитектурные решения
 
-**Clean Architecture** — бизнес-логика (`domain`, `application`) полностью изолирована от инфраструктуры. Репозитории определяются как интерфейсы в домене, реализуются в `infrastructure/persistence`.
+### DDD (Domain-Driven Design)
 
-**Event Bus** — при регистрации публикуется событие (`student.registered` / `admin.registered`). Подписчики асинхронно создают связанные сущности: профиль студента, запись о заполнении профиля. Это устраняет транзакционную связность между use case'ами.
+Проект следует тактическим паттернам DDD. Домен разбит на несколько **Bounded Context'ов**, каждый живёт в своём пакете:
 
-**PROMETHEE** — многокритериальный метод ранжирования. Каждый трек сравнивается с остальными по каждому критерию, формируется итоговый поток предпочтений, треки сортируются по убыванию совокупного score от 0 до 1.
+| Контекст | Пакет | Агрегаты / Сущности |
+|----------|-------|---------------------|
+| Аутентификация | `domain/auth` | `AuthUser` — учётная запись с email/password-хешем |
+| Студент | `domain/student` | `Student`, `Preferences`, `ProfileCompletion`, `TrackSelection` |
+| Администратор | `domain/admin` | `Admin` |
+| Трек | `domain/track` | `Track` с вложенным `Curriculum` |
+| Рекомендации | `domain/selection` | Доменная логика PROMETHEE (чистые функции) |
 
-**Seeding** — при старте приложения автоматически засеваются дефолтные треки (если таблица пуста), что упрощает первоначальный запуск без ручного наполнения данными.
+**Value Objects** — каждый идентификатор (`StudentID`, `AdminID`) и общий тип (`Email`) реализованы как value object: инкапсулируют валидацию, неизменяемы, сравниваются по значению, а не по ссылке.
+
+```go
+// Email — value object с валидацией на уровне домена
+type Email struct{ value string }
+
+func NewEmail(email string) (Email, error) { /* валидация */ }
+func (e Email) Equals(other Email) bool   { return strings.EqualFold(e.value, other.value) }
+```
+
+**Domain Events** — агрегаты публикуют события через интерфейс `DomainEvent` (`domain/shared/events`). Конкретные события: `StudentRegisteredEvent`, `ProfileCompletedEvent`, `AdminRegisteredEvent`. Это позволяет реагировать на изменения состояния без прямых зависимостей между контекстами.
+
+**Repository interfaces** — репозитории (`StudentRepository`, `TrackRepository`, `TrackSelectionRepository` и др.) объявлены как интерфейсы внутри домена. Инфраструктурный слой (`infrastructure/persistence/postgres`) предоставляет конкретные реализации — домен не знает ни о PostgreSQL, ни о pgx.
+
+**Domain Service** — `ProfileChecker` (`domain/student`) — доменный сервис, инкапсулирующий инвариант «профиль считается заполненным»: все оценки от 2 до 5, хотя бы один навык > 0, указан стиль обучения и хотя бы одна профессиональная цель. Используется как в use case обновления предпочтений, так и в use case получения рекомендаций.
+
+### Event Bus
+
+При регистрации use case публикует событие (`student.registered` / `admin.registered`) в in-memory шину (`domain/shared/events/EventBus`). Подписчики (`infrastructure/eventbus/subscribers`) асинхронно создают связанные сущности: профиль студента и запись `ProfileCompletion`. Это разрывает транзакционную связность между агрегатами из разных контекстов.
+
+### PROMETHEE
+
+Алгоритм рекомендаций (`domain/selection/promethee.go`) реализован как чистая доменная логика без зависимостей на инфраструктуру. Каждый трек попарно сравнивается с остальными по каждому критерию; формируется положительный и отрицательный поток предпочтений; итоговый score (0–1) определяет место трека в рейтинге.
+
+### Seeding
+
+При старте `bootstrap/app.go` вызывает `postgres.SeedTracks()` — если таблица треков пуста, засеваются дефолтные треки. Это позволяет сразу запустить сервис с реальными данными без отдельной команды.
 
 ---
 
