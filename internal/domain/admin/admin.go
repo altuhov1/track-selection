@@ -53,7 +53,6 @@ func NewAdminFromDB(
 	}
 }
 
-// Геттеры
 func (a *Admin) ID() AdminID                { return a.id }
 func (a *Admin) AuthUserID() string         { return a.authUserID }
 func (a *Admin) Email() value_objects.Email { return a.email }

@@ -10,7 +10,6 @@ import (
 	"track-selection/internal/domain/student"
 )
 
-// RegisterInput — входные данные
 type RegisterInput struct {
 	Email       string
 	Password    string
@@ -20,7 +19,6 @@ type RegisterInput struct {
 	AdminSecret string
 }
 
-// RegisterUseCase — Use Case регистрации
 type RegisterUseCase struct {
 	authRepo       auth.AuthUserRepository
 	eventBus       events.EventBus
@@ -70,8 +68,6 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) err
 		return errors.ErrAlreadyExists
 	}
 
-	// ВНИМАНИЕ: порядок параметров!
-	// NewAuthUser(email, rawPassword, firstName, lastName, role)
 	authUser, err := auth.NewAuthUser(
 		input.Email,
 		input.Password,

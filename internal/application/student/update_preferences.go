@@ -34,7 +34,6 @@ func NewUpdatePreferencesUseCase(
 }
 
 func (uc *UpdatePreferencesUseCase) Execute(ctx context.Context, userID string, updates json.RawMessage) error {
-	// Получаем существующие или создаём новые
 	prefs, err := uc.prefsRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		prefs = &student.Preferences{
@@ -45,34 +44,27 @@ func (uc *UpdatePreferencesUseCase) Execute(ctx context.Context, userID string, 
 		}
 	}
 
-	// Парсим обновления
 	var updatesMap map[string]interface{}
 	if err := json.Unmarshal(updates, &updatesMap); err != nil {
 		return errors.ErrInvalidRequest
 	}
 
-	// Применяем обновления
 	prefs.Merge(updatesMap)
 
-	// Валидация в DOMAIN слое!
 	if err := prefs.ValidatePartial(updatesMap); err != nil {
 		return err
 	}
 
-	// Сохраняем предпочтения
 	if err := uc.prefsRepo.Save(ctx, prefs); err != nil {
 		return err
 	}
 
-	// Проверяем полноту профиля
 	isComplete := uc.profileChecker.IsProfileComplete(prefs)
 
-	// Обновляем статус
 	if err := uc.updateProfileCompletion(ctx, userID, isComplete); err != nil {
 		return err
 	}
 
-	// Публикуем событие
 	event := student.NewProfileCompletedEvent(userID, isComplete)
 	uc.eventBus.Publish(ctx, event)
 

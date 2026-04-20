@@ -20,7 +20,6 @@ func NewAdminRepository(pool *pgxpool.Pool) *AdminRepository {
 	return &AdminRepository{pool: pool}
 }
 
-// Save сохраняет или обновляет админа
 func (r *AdminRepository) Save(ctx context.Context, a *admin.Admin) error {
 	query := `
         INSERT INTO admins (id, auth_user_id, email, first_name, last_name, created_at, updated_at)
@@ -48,7 +47,6 @@ func (r *AdminRepository) Save(ctx context.Context, a *admin.Admin) error {
 	return nil
 }
 
-// FindByID находит админа по ID
 func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admin.Admin, error) {
 	query := `
         SELECT id, auth_user_id, email, first_name, last_name, created_at, updated_at
@@ -82,7 +80,6 @@ func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admi
 		return nil, fmt.Errorf("failed to find admin by id: %w", err)
 	}
 
-	// Парсим Email
 	email, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email in database: %w", err)
@@ -93,7 +90,6 @@ func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admi
 		return nil, fmt.Errorf("invalid admin id in database: %w", err)
 	}
 
-	// Создаем админа через конструктор для восстановления из БД
 	return admin.NewAdminFromDB(
 		adminID,
 		authUserID,
@@ -105,7 +101,6 @@ func (r *AdminRepository) FindByID(ctx context.Context, id admin.AdminID) (*admi
 	), nil
 }
 
-// FindByEmail находит админа по email
 func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.Email) (*admin.Admin, error) {
 	query := `
         SELECT id, auth_user_id, email, first_name, last_name, created_at, updated_at
@@ -139,13 +134,11 @@ func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.E
 		return nil, fmt.Errorf("failed to find admin by email: %w", err)
 	}
 
-	// Парсим AdminID
 	adminID, err := admin.AdminIDFromString(idStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid admin id in database: %w", err)
 	}
 
-	// Email уже есть, но для консистенции парсим заново
 	parsedEmail, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email in database: %w", err)
@@ -162,7 +155,6 @@ func (r *AdminRepository) FindByEmail(ctx context.Context, email value_objects.E
 	), nil
 }
 
-// FindByAuthUserID находит админа по ID учетной записи
 func (r *AdminRepository) FindByAuthUserID(ctx context.Context, authUserID string) (*admin.Admin, error) {
 	query := `
         SELECT id, auth_user_id, email, first_name, last_name, created_at, updated_at
@@ -217,7 +209,6 @@ func (r *AdminRepository) FindByAuthUserID(ctx context.Context, authUserID strin
 	), nil
 }
 
-// ExistsByEmail проверяет существование админа по email
 func (r *AdminRepository) ExistsByEmail(ctx context.Context, email value_objects.Email) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM admins WHERE email = $1)`
 

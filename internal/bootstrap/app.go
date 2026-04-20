@@ -37,9 +37,7 @@ type App struct {
 	cancel   context.CancelFunc
 }
 
-// Infrastructure — все технические компоненты (репозитории, сервисы, БД)
 type Infrastructure struct {
-	// Репозитории (работа с БД)
 	AuthRepo              *postgres.AuthRepository
 	StudentRepo           *postgres.StudentRepository
 	AdminRepo             *postgres.AdminRepository
@@ -48,20 +46,15 @@ type Infrastructure struct {
 	TrackRepo             *postgres.TrackRepository
 	TrackSelectionRepo    *postgres.TrackSelectionRepository
 
-	// Технические сервисы
 	JwtService authDomain.JWTService
 
-	// БД пул
 	DB *pgxpool.Pool
 }
 
-// UseCases — только бизнес-сценарии (координация)
 type UseCases struct {
-	// Auth Use Cases
 	RegisterUC *authApp.RegisterUseCase
 	LoginUC    *authApp.LoginUseCase
 
-	// Student Use Cases
 	UpdatePreferencesUC    *studApp.UpdatePreferencesUseCase
 	GetPreferencesUC       *studApp.GetPreferencesUseCase
 	GetProfileCompletionUC *studApp.GetProfileCompletionUseCase
@@ -96,9 +89,7 @@ func NewApp(cfg *config.ConfigApp) *App {
 	return app
 }
 
-// initInfrastructure — инициализация всех технических компонентов
 func (a *App) initInfrastructure() {
-	// 1. Подключение к PostgreSQL
 	poolPG, err := postgres.NewPoolPg(&postgres.PoolConfig{
 		Host:     a.cfg.PG_DBHost,
 		User:     a.cfg.PG_DBUser,
@@ -113,7 +104,6 @@ func (a *App) initInfrastructure() {
 	}
 	a.infra.DB = poolPG
 
-	// 2. Репозитории
 	a.infra.AuthRepo = postgres.NewAuthRepository(poolPG)
 	a.infra.StudentRepo = postgres.NewStudentRepository(poolPG)
 	a.infra.AdminRepo = postgres.NewAdminRepository(poolPG)
@@ -122,10 +112,8 @@ func (a *App) initInfrastructure() {
 	a.infra.TrackRepo = postgres.NewTrackRepository(poolPG)
 	a.infra.TrackSelectionRepo = postgres.NewTrackSelectionRepository(poolPG)
 
-	// Создаем дефолтные треки
 	postgres.SeedTracks(a.rootCtx, a.infra.TrackRepo)
 
-	// 3. JWT сервис
 	if a.cfg.Jwt_secret_key == "" {
 		slog.Error("JWT secret key is required")
 		os.Exit(1)
@@ -136,11 +124,9 @@ func (a *App) initInfrastructure() {
 	})
 }
 
-// initEventBus — инициализация шины событий
 func (a *App) initEventBus() {
 	a.eventBus = eventbus.NewMemoryBus()
 
-	// Подписываем обработчики
 	createStudentHandler := authEventBus.NewCreateStudentRegHandler(a.infra.StudentRepo)
 	a.eventBus.Subscribe("student.registered", createStudentHandler)
 
@@ -154,12 +140,9 @@ func (a *App) initEventBus() {
 	a.eventBus.Subscribe("student.registered", createProfileHandler)
 }
 
-// initUseCases — инициализация всех Use Case'ов
 func (a *App) initUseCases() {
-	// Profile checker
 	profileChecker := student.NewProfileChecker()
 
-	// Auth Use Cases
 	a.useCases.RegisterUC = auth.NewRegisterUseCase(
 		a.infra.AuthRepo,
 		a.eventBus,
@@ -171,7 +154,6 @@ func (a *App) initUseCases() {
 		a.infra.JwtService,
 	)
 
-	// Student Use Cases
 	a.useCases.UpdatePreferencesUC = studApp.NewUpdatePreferencesUseCase(
 		a.infra.PreferencesRepo,
 		a.infra.ProfileCompletionRepo,
@@ -211,7 +193,6 @@ func (a *App) initUseCases() {
 	slog.Info("Use Cases initialized")
 }
 
-// initHTTP — инициализация HTTP сервера и маршрутов
 func (a *App) initHTTP() {
 	handler := handlers.NewHandler(
 		a.useCases.RegisterUC,
@@ -240,16 +221,13 @@ func (a *App) initHTTP() {
 	}
 }
 
-// setupRoutes — настройка маршрутов
 func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	r := mux.NewRouter()
 
-	// Публичные эндпоинты (без аутентификации)
 	r.HandleFunc("/api/register", handler.Register).Methods(http.MethodPost)
 	r.HandleFunc("/api/login", handler.Login).Methods(http.MethodPost)
 	r.HandleFunc("/api/all-tracks", handler.GetAllTracks).Methods(http.MethodGet)
 
-	// Защищенные эндпоинты (с аутентификацией)
 	r.HandleFunc("/api/me", middleware.WithAuth(a.infra.JwtService, handler.GetMe, middleware.RoleAny)).Methods(http.MethodGet)
 	r.HandleFunc("/api/me/edit-info", middleware.WithAuth(a.infra.JwtService, handler.UpdatePreferences, middleware.RoleAny)).Methods(http.MethodPost)
 	r.HandleFunc("/api/me/info", middleware.WithAuth(a.infra.JwtService, handler.GetPreferences, middleware.RoleAny)).Methods(http.MethodGet)
@@ -259,7 +237,6 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	r.HandleFunc("/api/delete-track/{id}", middleware.WithAuth(a.infra.JwtService, handler.DeleteTrack, middleware.RoleAdmin)).Methods(http.MethodDelete)
 	r.HandleFunc("/api/student/recommendations", middleware.WithAuth(a.infra.JwtService, handler.GetRecommendations, middleware.RoleAny)).Methods(http.MethodGet)
 
-	// Выбор треков
 	r.HandleFunc("/api/student/select-track",
 		middleware.WithAuth(a.infra.JwtService, handler.SelectTrack, middleware.RoleAny)).
 		Methods(http.MethodPost)
@@ -273,7 +250,6 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	return middleware.ContextMiddleware(a.rootCtx, r)
 }
 
-// Run — запуск сервера
 func (a *App) Run() {
 	go a.startServer()
 	a.waitForShutdown()
@@ -308,7 +284,6 @@ func (a *App) shutdown() {
 		slog.Error("Server forced to shutdown", "error", err)
 	}
 
-	// Закрываем соединение с БД
 	if a.infra != nil && a.infra.DB != nil {
 		a.infra.DB.Close()
 		slog.Info("Database connection closed")

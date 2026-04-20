@@ -15,7 +15,6 @@ type StudentRegisteredEvent struct {
 	LastName  string
 }
 
-// NewStudentRegisteredEvent создает событие регистрации студента
 func NewStudentRegisteredEvent(userID, email, firstName, lastName string) StudentRegisteredEvent {
 	return StudentRegisteredEvent{
 		BaseDomainEvent: events.BaseDomainEvent{
@@ -30,7 +29,6 @@ func NewStudentRegisteredEvent(userID, email, firstName, lastName string) Studen
 	}
 }
 
-// Это пометка что пользователь готов к показу статистик
 type ProfileCompletedEvent struct {
 	events.BaseDomainEvent
 	UserID    string `json:"user_id"`

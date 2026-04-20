@@ -17,7 +17,6 @@ func NewGetPreferencesUseCase(repo *postgres.PreferencesRepository) *GetPreferen
 func (uc *GetPreferencesUseCase) Execute(ctx context.Context, userID string) (*student.Preferences, error) {
 	prefs, err := uc.prefsRepo.FindByUserID(ctx, userID)
 	if err != nil {
-		// Если нет предпочтений, возвращаем пустые (дефолтные)
 		return &student.Preferences{
 			ProfessionalGoals: []int{},
 			Skills:            student.Skills{},

@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// ---------- StudentID ----------
 type StudentID struct {
 	value string
 }

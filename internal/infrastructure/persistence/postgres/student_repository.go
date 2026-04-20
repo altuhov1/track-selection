@@ -53,7 +53,6 @@ func (r *StudentRepository) Save(ctx context.Context, s *student.Student) error 
 	return nil
 }
 
-// FindByID находит студента по ID
 func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) (*student.Student, error) {
 	query := `
         SELECT id, auth_user_id, email, first_name, last_name, username, rating, created_at, updated_at
@@ -91,19 +90,16 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 		return nil, fmt.Errorf("failed to find student by id: %w", err)
 	}
 
-	// Парсим Email
 	email, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email in database: %w", err)
 	}
 
-	// Парсим StudentID
 	studentID, err := student.StudentIDFromString(idStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid student id in database: %w", err)
 	}
 
-	// Создаем студента через конструктор для восстановления из БД
 	return student.NewStudentFromDB(
 		studentID,
 		authUserID,
@@ -117,7 +113,6 @@ func (r *StudentRepository) FindByID(ctx context.Context, id student.StudentID) 
 	), nil
 }
 
-// FindByEmail находит студента по email
 func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects.Email) (*student.Student, error) {
 	query := `
         SELECT id, auth_user_id, email, first_name, last_name, username, rating, created_at, updated_at
@@ -155,13 +150,11 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 		return nil, fmt.Errorf("failed to find student by email: %w", err)
 	}
 
-	// Парсим StudentID
 	studentID, err := student.StudentIDFromString(idStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid student id in database: %w", err)
 	}
 
-	// Email уже есть, но для консистенции парсим заново
 	parsedEmail, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid email in database: %w", err)
@@ -180,7 +173,6 @@ func (r *StudentRepository) FindByEmail(ctx context.Context, email value_objects
 	), nil
 }
 
-// FindByAuthUserID находит студента по ID учетной записи
 func (r *StudentRepository) FindByAuthUserID(ctx context.Context, authUserID string) (*student.Student, error) {
 	query := `
         SELECT id, auth_user_id, email, first_name, last_name, username, rating, created_at, updated_at
@@ -241,7 +233,6 @@ func (r *StudentRepository) FindByAuthUserID(ctx context.Context, authUserID str
 	), nil
 }
 
-// ExistsByEmail проверяет существование студента по email
 func (r *StudentRepository) ExistsByEmail(ctx context.Context, email value_objects.Email) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM students WHERE email = $1)`
 
@@ -254,7 +245,6 @@ func (r *StudentRepository) ExistsByEmail(ctx context.Context, email value_objec
 	return exists, nil
 }
 
-// UpdateRating обновляет рейтинг студента
 func (r *StudentRepository) UpdateRating(ctx context.Context, studentID student.StudentID, rating int) error {
 	query := `UPDATE students SET rating = $1, updated_at = $2 WHERE id = $3`
 

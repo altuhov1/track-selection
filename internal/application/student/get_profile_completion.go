@@ -17,7 +17,6 @@ func NewGetProfileCompletionUseCase(repo *postgres.ProfileCompletionRepository) 
 func (uc *GetProfileCompletionUseCase) Execute(ctx context.Context, userID string) (*student.ProfileCompletion, error) {
 	status, err := uc.profileRepo.FindByUserID(ctx, userID)
 	if err != nil {
-		// Если нет записи, создаем дефолтную
 		return &student.ProfileCompletion{
 			UserID:     userID,
 			IsComplete: false,

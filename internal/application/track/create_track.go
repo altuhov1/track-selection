@@ -21,7 +21,7 @@ type CreateTrackInput struct {
 	Requirements        []track.Requirement `json:"requirements"`
 	Teachers            []string            `json:"teachers"`
 	Difficulty          int                 `json:"difficulty"`
-	Type                int                 `json:"type"` // ← добавить
+	Type                int                 `json:"type"`
 	EmploymentProspects int                 `json:"employment_prospects"`
 	AlumniReviews       int                 `json:"alumni_reviews"`
 	WebLink             string              `json:"web_link"`

@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Course — один курс
 type Course struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
@@ -14,20 +13,17 @@ type Course struct {
 	Options     []string `json:"options,omitempty"`
 }
 
-// Semester — семестр с курсами
 type Semester struct {
 	Number  int      `json:"number"`
 	Courses []Course `json:"courses"`
 }
 
-// YearTrack — информация о треке на год (для типа "single")
 type YearTrack struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	Semesters   []Semester `json:"semesters"`
 }
 
-// YearBranch — ветка выбора (для типа "branching")
 type YearBranch struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
@@ -35,7 +31,6 @@ type YearBranch struct {
 	Branches    []YearBranch
 }
 
-// YearPlan — план на один год
 type YearPlan struct {
 	Year     int          `json:"year"`
 	Type     string       `json:"type"` // "single" или "branching"
@@ -43,18 +38,15 @@ type YearPlan struct {
 	Branches []YearBranch `json:"branches,omitempty"`
 }
 
-// Curriculum — учебный план (по годам)
 type Curriculum struct {
 	Years []YearPlan `json:"years"`
 }
 
-// Requirement — требования к поступающему
 type Requirement struct {
 	Subject  string `json:"subject"`
 	MinGrade int    `json:"min_grade"`
 }
 
-// Track — образовательный трек
 type Track struct {
 	ID                  string        `json:"id"`
 	Name                string        `json:"name"`
@@ -77,7 +69,6 @@ type Track struct {
 	UpdatedAt           time.Time     `json:"updated_at"`
 }
 
-// NewTrack создает новый трек
 func NewTrack(
 	name, description string,
 	curriculum Curriculum,
@@ -114,7 +105,6 @@ func NewTrack(
 	}, nil
 }
 
-// Update обновляет поля трека
 func (t *Track) Update(updates map[string]interface{}) {
 	if val, ok := updates["name"]; ok {
 		t.Name = val.(string)
@@ -170,11 +160,9 @@ func (t *Track) Update(updates map[string]interface{}) {
 	t.UpdatedAt = time.Now()
 }
 
-// parseCurriculum преобразует map в Curriculum (с поддержкой years)
 func parseCurriculum(data map[string]interface{}) Curriculum {
 	var curriculum Curriculum
 
-	// Проверяем новую структуру (с years)
 	if years, ok := data["years"].([]interface{}); ok {
 		for _, y := range years {
 			yearMap := y.(map[string]interface{})
@@ -187,7 +175,6 @@ func parseCurriculum(data map[string]interface{}) Curriculum {
 				yearPlan.Type = typeStr
 			}
 
-			// Парсим single track
 			if trackData, ok := yearMap["track"].(map[string]interface{}); ok && trackData != nil {
 				track := &YearTrack{}
 				if name, ok := trackData["name"].(string); ok {
@@ -202,7 +189,6 @@ func parseCurriculum(data map[string]interface{}) Curriculum {
 				yearPlan.Track = track
 			}
 
-			// Парсим branches (рекурсивно)
 			if branches, ok := yearMap["branches"].([]interface{}); ok {
 				yearPlan.Branches = parseBranches(branches)
 			}
@@ -212,7 +198,6 @@ func parseCurriculum(data map[string]interface{}) Curriculum {
 		return curriculum
 	}
 
-	// Поддержка старой структуры (semesters) для обратной совместимости
 	if semesters, ok := data["semesters"].([]interface{}); ok {
 		curriculum.Years = []YearPlan{
 			{
@@ -230,7 +215,6 @@ func parseCurriculum(data map[string]interface{}) Curriculum {
 	return curriculum
 }
 
-// parseBranches рекурсивно парсит ветки выбора
 func parseBranches(branchesData []interface{}) []YearBranch {
 	var branches []YearBranch
 
@@ -258,7 +242,6 @@ func parseBranches(branchesData []interface{}) []YearBranch {
 	return branches
 }
 
-// parseSemesters парсит семестры из JSON
 func parseSemesters(semestersData []interface{}) []Semester {
 	var semesters []Semester
 

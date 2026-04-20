@@ -104,9 +104,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, http.StatusOK, map[string]string{"token": output.Token})
 }
 
-// GetMe возвращает информацию о текущем пользователе
 func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
-	// Данные уже в контексте от middleware!
 	userID, ok := r.Context().Value("user_id").(string)
 	if !ok || userID == "" {
 		sendError(w, http.StatusUnauthorized, "UNAUTHORIZED", "not authenticated")

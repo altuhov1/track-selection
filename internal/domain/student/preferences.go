@@ -58,7 +58,6 @@ func randomGrade() int {
 	return []int{4, 5}[time.Now().Nanosecond()%2]
 }
 
-// Validate validates all preferences fields
 func (p *Preferences) Validate() error {
 	if err := p.validateLearningStyle(); err != nil {
 		return err
@@ -178,7 +177,6 @@ func (p *Preferences) validateGrades() error {
 	return nil
 }
 
-// Частичное обновление
 func (p *Preferences) Merge(updates map[string]interface{}) {
 	if val, ok := updates["professional_goals"]; ok {
 		if goals, ok := val.([]interface{}); ok {

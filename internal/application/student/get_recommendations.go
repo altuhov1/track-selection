@@ -32,24 +32,20 @@ type GetRecommendationsOutput struct {
 }
 
 func (uc *GetRecommendationsUseCase) Execute(ctx context.Context, userID string) (*GetRecommendationsOutput, error) {
-	// 1. Получаем предпочтения студента
 	prefs, err := uc.prefsRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Проверяем, достаточно ли данных для рекомендаций (используем доменную логику)
 	if !uc.profileChecker.IsProfileComplete(prefs) {
 		return nil, errors.ErrProfileNotComplete
 	}
 
-	// 3. Получаем все треки
 	tracks, err := uc.trackRepo.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. Подготавливаем данные студента
 	studentData := selection.StudentData{
 		ProfessionalGoals: prefs.ProfessionalGoals,
 		Grades: selection.Grades{
@@ -80,10 +76,8 @@ func (uc *GetRecommendationsUseCase) Execute(ctx context.Context, userID string)
 		DesiredSoftSkills: prefs.Skills.PublicSpeaking,
 	}
 
-	// 5. Подготавливаем данные треков для PROMETHEE
 	var prometheeInputs []selection.PrometheeInput
 	for _, t := range tracks {
-		// Парсим требования из JSON
 		var requirements []selection.Requirement
 		if len(t.Requirements) > 0 {
 			reqJSON, _ := json.Marshal(t.Requirements)
@@ -106,7 +100,6 @@ func (uc *GetRecommendationsUseCase) Execute(ctx context.Context, userID string)
 		})
 	}
 
-	// 6. Рассчитываем оценки
 	calculator := selection.NewPrometheeCalculator(selection.DefaultWeights())
 	scores := calculator.CalculateScores(prometheeInputs, studentData)
 

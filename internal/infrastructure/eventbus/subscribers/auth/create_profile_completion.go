@@ -30,8 +30,6 @@ func (h *CreateProfileCompletionHandler) Handle(ctx context.Context, event event
 	if !ok {
 		return nil
 	}
-
-	// 1. Создаем предпочтения с случайными оценками
 	prefs := &student.Preferences{
 		ID:                uuid.New().String(),
 		UserID:            e.UserID,

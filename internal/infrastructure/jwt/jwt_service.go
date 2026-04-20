@@ -49,7 +49,6 @@ func (s *JWTServiceImpl) ValidateToken(tokenString string) (*auth.TokenClaims, e
 	})
 
 	if err != nil {
-		// В jwt/v5 ошибки проверяются через errors.Is
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, domErr.ErrTokenExpired
 		}
@@ -64,7 +63,6 @@ func (s *JWTServiceImpl) ValidateToken(tokenString string) (*auth.TokenClaims, e
 		return nil, domErr.ErrInvalidToken
 	}
 
-	// Проверяем наличие полей
 	userID, ok := claims["user_id"].(string)
 	if !ok || userID == "" {
 		return nil, domErr.ErrInvalidToken

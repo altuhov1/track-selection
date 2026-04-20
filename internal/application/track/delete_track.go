@@ -15,12 +15,10 @@ func NewDeleteTrackUseCase(repo *postgres.TrackRepository) *DeleteTrackUseCase {
 }
 
 func (uc *DeleteTrackUseCase) Execute(ctx context.Context, id string) error {
-	// Проверяем, существует ли трек
 	_, err := uc.trackRepo.FindByID(ctx, id)
 	if err != nil {
 		return errors.ErrNotFound
 	}
 
-	// Удаляем трек
 	return uc.trackRepo.Delete(ctx, id)
 }

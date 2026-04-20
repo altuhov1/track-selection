@@ -19,14 +19,12 @@ type Student struct {
 	updatedAt  time.Time
 }
 
-// NewStudent создает нового студента
 func NewStudent(authUserID string, emailStr string, firstName, lastName string) (*Student, error) {
 	email, err := value_objects.NewEmail(emailStr)
 	if err != nil {
 		return nil, err
 	}
 
-	// Создаем username из имени и фамилии
 	username := strings.ToLower(strings.ReplaceAll(firstName+"."+lastName, " ", ""))
 
 	now := time.Now()
@@ -44,7 +42,6 @@ func NewStudent(authUserID string, emailStr string, firstName, lastName string) 
 	}, nil
 }
 
-// NewStudentFromDB восстанавливает студента из БД
 func NewStudentFromDB(
 	id StudentID,
 	authUserID string,
@@ -67,7 +64,6 @@ func NewStudentFromDB(
 	}
 }
 
-// Геттеры
 func (s *Student) ID() StudentID              { return s.id }
 func (s *Student) AuthUserID() string         { return s.authUserID }
 func (s *Student) Email() value_objects.Email { return s.email }
@@ -78,7 +74,6 @@ func (s *Student) Rating() int                { return s.rating }
 func (s *Student) CreatedAt() time.Time       { return s.createdAt }
 func (s *Student) UpdatedAt() time.Time       { return s.updatedAt }
 
-// Методы для изменения данных
 func (s *Student) ChangeUsername(username string) error {
 	username = strings.TrimSpace(username)
 	if username == "" {

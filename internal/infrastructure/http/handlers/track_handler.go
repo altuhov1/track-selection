@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllTracks - публичный эндпоинт (без JWT)
+
 func (h *Handler) GetAllTracks(w http.ResponseWriter, r *http.Request) {
 	tracks, err := h.getAllTracksUC.Execute(r.Context())
 	if err != nil {
@@ -19,7 +19,6 @@ func (h *Handler) GetAllTracks(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, http.StatusOK, tracks)
 }
 
-// CreateTrack - только для админа
 func (h *Handler) CreateTrack(w http.ResponseWriter, r *http.Request) {
 	var input track.CreateTrackInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -36,7 +35,6 @@ func (h *Handler) CreateTrack(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, http.StatusCreated, t)
 }
 
-// UpdateTrack - только для админа
 func (h *Handler) UpdateTrack(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]

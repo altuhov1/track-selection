@@ -53,7 +53,6 @@ func WithAuth(JwtService auth.JWTService, handlerFn func(http.ResponseWriter, *h
 				return
 			}
 		case RoleAny:
-			// любая роль подходит
 		}
 		ctx := context.WithValue(r.Context(), "user_id", token.UserID)
 		ctx = context.WithValue(ctx, "user_role", string(token.Role))

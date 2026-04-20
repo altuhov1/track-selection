@@ -36,7 +36,6 @@ func (bus *MemoryEventBus) Publish(ctx context.Context, event events.DomainEvent
 
 			bgCtx := context.WithoutCancel(ctx)
 
-			// Добавляем свой таймаут для безопасности
 			timeoutCtx, cancel := context.WithTimeout(bgCtx, 30*time.Second)
 			defer cancel()
 

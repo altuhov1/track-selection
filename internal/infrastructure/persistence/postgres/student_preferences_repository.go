@@ -19,7 +19,6 @@ func NewPreferencesRepository(pool *pgxpool.Pool) *PreferencesRepository {
 }
 
 func (r *PreferencesRepository) Save(ctx context.Context, prefs *student.Preferences) error {
-	// Преобразуем ProfessionalGoals в JSON
 	goalsJSON, err := json.Marshal(prefs.ProfessionalGoals)
 	if err != nil {
 		return errors.ErrInvalidRequest
@@ -78,7 +77,6 @@ func (r *PreferencesRepository) Save(ctx context.Context, prefs *student.Prefere
 	return nil
 }
 
-// FindByUserID находит предпочтения по user_id
 func (r *PreferencesRepository) FindByUserID(ctx context.Context, userID string) (*student.Preferences, error) {
 	query := `
 		SELECT 

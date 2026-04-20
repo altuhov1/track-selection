@@ -22,13 +22,11 @@ func NewUnselectTrackUseCase(
 }
 
 func (uc *UnselectTrackUseCase) Execute(ctx context.Context, authUserID, trackID string) error {
-	// Находим студента по auth_user_id
 	stud, err := uc.studentRepo.FindByAuthUserID(ctx, authUserID)
 	if err != nil || stud == nil {
 		return errors.ErrNotFound
 	}
 
-	// Проверяем, существует ли выбор
 	exists, err := uc.selectionRepo.Exists(ctx, stud.ID().String(), trackID)
 	if err != nil {
 		return err

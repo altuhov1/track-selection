@@ -29,7 +29,6 @@ type GetSelectedTracksOutput struct {
 }
 
 func (uc *GetSelectedTracksUseCase) Execute(ctx context.Context, studentID string) (*GetSelectedTracksOutput, error) {
-	// Находим студента по auth_user_id
 	stud, err := uc.studentRepo.FindByAuthUserID(ctx, studentID)
 	if err != nil || stud == nil {
 		return &GetSelectedTracksOutput{Tracks: []*track.Track{}}, nil
