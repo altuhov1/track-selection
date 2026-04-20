@@ -22,7 +22,7 @@ function emptyTrack() {
 }
 
 function emptyBranch() {
-  return { name: '', description: '', semesters: [emptySemester(1)] }
+  return { name: '', description: '', mode: 'leaf', semesters: [emptySemester(1)], branches: [] }
 }
 
 function emptyYear(year = 3, type = 'single') {
@@ -47,6 +47,19 @@ function normalizeSemesters(list) {
   }))
 }
 
+function normalizeBranch(b) {
+  const rawNested = b?.branches ?? b?.Branches
+  const nestedList = Array.isArray(rawNested) ? rawNested : []
+  const hasNested = nestedList.length > 0
+  return {
+    name: b?.name ?? '',
+    description: b?.description ?? '',
+    mode: hasNested ? 'nested' : 'leaf',
+    semesters: normalizeSemesters(b?.semesters),
+    branches: hasNested ? nestedList.map(normalizeBranch) : [],
+  }
+}
+
 function initialYears(curriculum) {
   const years = curriculum?.years
   if (Array.isArray(years) && years.length > 0) {
@@ -59,11 +72,7 @@ function initialYears(curriculum) {
         semesters: normalizeSemesters(y.track?.semesters),
       },
       branches: Array.isArray(y.branches) && y.branches.length > 0
-        ? y.branches.map((b) => ({
-            name: b.name ?? '',
-            description: b.description ?? '',
-            semesters: normalizeSemesters(b.semesters),
-          }))
+        ? y.branches.map(normalizeBranch)
         : [emptyBranch(), emptyBranch()],
     }))
   }
@@ -165,20 +174,8 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
   function updateYearTrack(yi, patch) {
     setYears(ys => ys.map((y, i) => i === yi ? { ...y, track: { ...y.track, ...patch } } : y))
   }
-  function addBranch(yi) {
-    setYears(ys => ys.map((y, i) => i === yi ? { ...y, branches: [...(y.branches || []), emptyBranch()] } : y))
-  }
-  function updateBranch(yi, bi, patch) {
-    setYears(ys => ys.map((y, i) => {
-      if (i !== yi) return y
-      return { ...y, branches: y.branches.map((b, bj) => bj === bi ? { ...b, ...patch } : b) }
-    }))
-  }
-  function removeBranch(yi, bi) {
-    setYears(ys => ys.map((y, i) => {
-      if (i !== yi) return y
-      return { ...y, branches: y.branches.filter((_, bj) => bj !== bi) }
-    }))
+  function setYearBranches(yi, branches) {
+    setYears(ys => ys.map((y, i) => i === yi ? { ...y, branches } : y))
   }
 
   async function handleSubmit(e) {
@@ -200,11 +197,7 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
         }
         return {
           ...base,
-          branches: y.branches.map((b) => ({
-            name: b.name.trim(),
-            description: b.description.trim(),
-            semesters: serializeSemesters(b.semesters),
-          })),
+          branches: y.branches.map(serializeBranch),
         }
       }),
     }
@@ -456,48 +449,11 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
                   {y.type === 'branching' && (
                     <div className="year-edit-body">
                       <p className="profile-section-hint">Подтреки (студент выберет один)</p>
-                      {y.branches.map((b, bi) => (
-                        <div key={bi} className="branch-edit-block">
-                          <div className="branch-edit-head">
-                            <strong>Подтрек {bi + 1}</strong>
-                            <button
-                              type="button"
-                              className="btn-ghost-sm btn-ghost-sm--danger"
-                              onClick={() => removeBranch(yi, bi)}
-                            >
-                              Удалить подтрек
-                            </button>
-                          </div>
-                          <div className="form-group">
-                            <label>Название подтрека</label>
-                            <input
-                              type="text"
-                              value={b.name}
-                              onChange={(e) => updateBranch(yi, bi, { name: e.target.value })}
-                              placeholder="Например, Искусственный интеллект"
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>Описание</label>
-                            <textarea
-                              rows={2}
-                              value={b.description}
-                              onChange={(e) => updateBranch(yi, bi, { description: e.target.value })}
-                            />
-                          </div>
-                          <SemesterEditor
-                            semesters={b.semesters}
-                            onChange={(semesters) => updateBranch(yi, bi, { semesters })}
-                          />
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-block"
-                        onClick={() => addBranch(yi)}
-                      >
-                        + Подтрек
-                      </button>
+                      <BranchListEditor
+                        branches={y.branches}
+                        onChange={(branches) => setYearBranches(yi, branches)}
+                        depth={0}
+                      />
                     </div>
                   )}
                 </div>
@@ -523,6 +479,127 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+function serializeBranch(b) {
+  const out = {
+    name: b.name.trim(),
+    description: b.description.trim(),
+  }
+  if (b.mode === 'nested') {
+    out.branches = (b.branches || []).map(serializeBranch)
+  } else {
+    out.semesters = serializeSemesters(b.semesters)
+  }
+  return out
+}
+
+function BranchListEditor({ branches, onChange, depth }) {
+  function updateAt(i, next) {
+    onChange(branches.map((b, idx) => idx === i ? next : b))
+  }
+  function removeAt(i) {
+    onChange(branches.filter((_, idx) => idx !== i))
+  }
+  function addBranch() {
+    onChange([...branches, emptyBranch()])
+  }
+  return (
+    <>
+      {branches.map((b, bi) => (
+        <BranchEditor
+          key={bi}
+          index={bi}
+          depth={depth}
+          branch={b}
+          onChange={(next) => updateAt(bi, next)}
+          onRemove={() => removeAt(bi)}
+        />
+      ))}
+      <button
+        type="button"
+        className="btn btn-outline btn-block"
+        onClick={addBranch}
+      >
+        + {depth === 0 ? 'Подтрек' : 'Подподтрек'}
+      </button>
+    </>
+  )
+}
+
+function BranchEditor({ branch, index, depth, onChange, onRemove }) {
+  function patch(p) { onChange({ ...branch, ...p }) }
+  function setMode(mode) {
+    if (branch.mode === mode) return
+    if (mode === 'nested') {
+      const nested = branch.branches && branch.branches.length > 0
+        ? branch.branches
+        : [emptyBranch(), emptyBranch()]
+      onChange({ ...branch, mode: 'nested', branches: nested })
+    } else {
+      const sems = branch.semesters && branch.semesters.length > 0
+        ? branch.semesters
+        : [emptySemester(1)]
+      onChange({ ...branch, mode: 'leaf', semesters: sems })
+    }
+  }
+  const title = depth === 0 ? `Подтрек ${index + 1}` : `Подподтрек ${index + 1}`
+  const removeLabel = depth === 0 ? 'Удалить подтрек' : 'Удалить подподтрек'
+  return (
+    <div className="branch-edit-block" data-depth={depth}>
+      <div className="branch-edit-head">
+        <strong>{title}</strong>
+        <div className="chip-row">
+          <button
+            type="button"
+            className={`chip chip--toggle${branch.mode === 'leaf' ? ' chip--active' : ''}`}
+            onClick={() => setMode('leaf')}
+          >Семестры</button>
+          <button
+            type="button"
+            className={`chip chip--toggle${branch.mode === 'nested' ? ' chip--active' : ''}`}
+            onClick={() => setMode('nested')}
+          >Подподтреки</button>
+        </div>
+        <button
+          type="button"
+          className="btn-ghost-sm btn-ghost-sm--danger"
+          onClick={onRemove}
+        >
+          {removeLabel}
+        </button>
+      </div>
+      <div className="form-group">
+        <label>Название</label>
+        <input
+          type="text"
+          value={branch.name}
+          onChange={(e) => patch({ name: e.target.value })}
+          placeholder="Например, Искусственный интеллект"
+        />
+      </div>
+      <div className="form-group">
+        <label>Описание</label>
+        <textarea
+          rows={2}
+          value={branch.description}
+          onChange={(e) => patch({ description: e.target.value })}
+        />
+      </div>
+      {branch.mode === 'leaf' ? (
+        <SemesterEditor
+          semesters={branch.semesters}
+          onChange={(semesters) => patch({ semesters })}
+        />
+      ) : (
+        <BranchListEditor
+          branches={branch.branches || []}
+          onChange={(branches) => patch({ branches })}
+          depth={depth + 1}
+        />
+      )}
     </div>
   )
 }

@@ -1105,6 +1105,15 @@ input, select { font-family: inherit; }
 }
 .course-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
 .course-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.course-elective-note {
+  font-size: 12px;
+  font-weight: 300;
+  color: #60A5FA;
+  padding: 2px 4px;
+  margin: 2px 0 -2px;
+  letter-spacing: .2px;
+}
+[data-theme="dark"] .course-elective-note { color: #93C5FD; }
 
 /* ---- Track picker modal ---- */
 .modal--picker {
@@ -1205,18 +1214,83 @@ input, select { font-family: inherit; }
 .year-plan-body { padding: 14px 16px; }
 .year-track-name { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
 .year-track-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4; }
-.year-branches { display: flex; flex-direction: column; }
-.year-branch {
-  padding: 14px 16px;
-  border-left: 3px solid var(--border);
+/* ==== Branch tree (recursive) ==== */
+.branch-tree {
+  list-style: none;
+  margin: 0;
+  padding: 14px 14px 14px 32px;
+  position: relative;
 }
-.year-branch + .year-branch { border-top: 1px solid var(--border); }
-.year-branch:nth-child(1) { border-left-color: #2563EB; }
-.year-branch:nth-child(2) { border-left-color: #7C3AED; }
-.year-branch:nth-child(3) { border-left-color: #059669; }
-.year-branch:nth-child(4) { border-left-color: #D97706; }
-.year-branch-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
-.year-branch-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4; }
+.branch-tree::before {
+  content: '';
+  position: absolute;
+  left: 18px; top: 0; bottom: 14px;
+  width: 2px;
+  background: var(--border);
+}
+.branch-tree > .branch-tree-item {
+  position: relative;
+  padding: 10px 0;
+}
+.branch-tree > .branch-tree-item + .branch-tree-item { margin-top: 4px; }
+.branch-tree > .branch-tree-item::before {
+  content: '';
+  position: absolute;
+  left: -14px; top: 28px;
+  width: 14px; height: 2px;
+  background: var(--border);
+}
+.branch-tree > .branch-tree-item:last-child::after {
+  content: '';
+  position: absolute;
+  left: -15px; top: 30px; bottom: 0;
+  width: 4px;
+  background: var(--bg-card);
+}
+.branch-node {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--branch-color, var(--border));
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--bg-page);
+}
+.branch-node-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.branch-node-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--branch-color, var(--text-muted));
+  flex-shrink: 0;
+}
+.branch-node-title {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+}
+.branch-node-desc {
+  font-size: 13px; color: var(--text-secondary);
+  margin: 0 0 10px; line-height: 1.4;
+}
+.branch-node-semesters { margin-top: 8px; }
+.branch-node-choice { margin-top: 12px; }
+.branch-node-choice-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+}
+.branch-node .branch-tree {
+  padding-left: 32px;
+  padding-top: 6px;
+  padding-bottom: 0;
+}
+.branch-node .branch-tree::before {
+  left: 18px;
+}
+.branch-edit-block[data-depth="1"] { background: transparent; border-style: dashed; }
+.branch-edit-block[data-depth="2"] { background: transparent; border-style: dotted; }
 
 /* ============================================================
    PROFILE MODAL
@@ -1763,8 +1837,11 @@ input, select { font-family: inherit; }
 [data-theme="dark"] .year-plan                { border-color: var(--border); }
 [data-theme="dark"] .year-plan-header         { background: #1F2937; border-bottom-color: var(--border); }
 [data-theme="dark"] .year-plan-badge          { background: #2E1065; color: #C4B5FD; }
-[data-theme="dark"] .year-branch              { border-left-color: var(--border); }
-[data-theme="dark"] .year-branch + .year-branch { border-top-color: var(--border); }
+[data-theme="dark"] .branch-node               { background: var(--bg-page); border-color: var(--border); }
+[data-theme="dark"] .branch-tree::before       { background: var(--border); }
+[data-theme="dark"] .branch-tree > .branch-tree-item::before { background: var(--border); }
+[data-theme="dark"] .branch-tree > .branch-tree-item:last-child::after { background: var(--bg-card); }
+[data-theme="dark"] .branch-node-choice-label  { background: var(--bg-card); border-color: var(--border); }
 
 [data-theme="dark"] .profile-user             { background: var(--bg-page); border-color: var(--border); }
 [data-theme="dark"] .grade-row                { background: var(--bg-page); border-color: var(--border); }

@@ -32,6 +32,7 @@ type YearBranch struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	Semesters   []Semester `json:"semesters"`
+	Branches    []YearBranch
 }
 
 // YearPlan — план на один год
@@ -201,24 +202,9 @@ func parseCurriculum(data map[string]interface{}) Curriculum {
 				yearPlan.Track = track
 			}
 
-			// Парсим branches
+			// Парсим branches (рекурсивно)
 			if branches, ok := yearMap["branches"].([]interface{}); ok {
-				for _, b := range branches {
-					branchMap := b.(map[string]interface{})
-					branch := YearBranch{}
-
-					if name, ok := branchMap["name"].(string); ok {
-						branch.Name = name
-					}
-					if desc, ok := branchMap["description"].(string); ok {
-						branch.Description = desc
-					}
-					if semesters, ok := branchMap["semesters"].([]interface{}); ok {
-						branch.Semesters = parseSemesters(semesters)
-					}
-
-					yearPlan.Branches = append(yearPlan.Branches, branch)
-				}
+				yearPlan.Branches = parseBranches(branches)
 			}
 
 			curriculum.Years = append(curriculum.Years, yearPlan)
@@ -242,6 +228,34 @@ func parseCurriculum(data map[string]interface{}) Curriculum {
 	}
 
 	return curriculum
+}
+
+// parseBranches рекурсивно парсит ветки выбора
+func parseBranches(branchesData []interface{}) []YearBranch {
+	var branches []YearBranch
+
+	for _, b := range branchesData {
+		branchMap := b.(map[string]interface{})
+		branch := YearBranch{}
+
+		if name, ok := branchMap["name"].(string); ok {
+			branch.Name = name
+		}
+		if desc, ok := branchMap["description"].(string); ok {
+			branch.Description = desc
+		}
+		if semesters, ok := branchMap["semesters"].([]interface{}); ok {
+			branch.Semesters = parseSemesters(semesters)
+		}
+		// Рекурсивно парсим вложенные ветки (подподтреки)
+		if subBranches, ok := branchMap["branches"].([]interface{}); ok {
+			branch.Branches = parseBranches(subBranches)
+		}
+
+		branches = append(branches, branch)
+	}
+
+	return branches
 }
 
 // parseSemesters парсит семестры из JSON

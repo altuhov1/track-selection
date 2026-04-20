@@ -138,15 +138,7 @@ export default function TrackDetailsModal({ track, onClose }) {
                         </div>
                       )}
                       {yp.type === 'branching' && (yp.branches || []).length > 0 && (
-                        <div className="year-branches">
-                          {(yp.branches || []).map((br, bi) => (
-                            <div key={bi} className="year-branch">
-                              <div className="year-branch-title">{br.name}</div>
-                              {br.description && <p className="year-branch-desc">{br.description}</p>}
-                              <SemesterList semesters={br.semesters || []} />
-                            </div>
-                          ))}
-                        </div>
+                        <BranchTree branches={yp.branches} />
                       )}
                     </div>
                   ))}
@@ -181,6 +173,54 @@ function Metric({ label, value }) {
   )
 }
 
+const BRANCH_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0891B2']
+
+function getNestedBranches(br) {
+  const list = br?.branches ?? br?.Branches
+  return Array.isArray(list) ? list : []
+}
+
+function BranchTree({ branches }) {
+  if (!branches?.length) return null
+  return (
+    <ul className="branch-tree">
+      {branches.map((br, bi) => {
+        const hasSems   = Array.isArray(br.semesters) && br.semesters.length > 0
+        const nested    = getNestedBranches(br)
+        const hasNested = nested.length > 0
+        const color = BRANCH_COLORS[bi % BRANCH_COLORS.length]
+        return (
+          <li key={bi} className="branch-tree-item" style={{ '--branch-color': color }}>
+            <div className="branch-node">
+              <div className="branch-node-head">
+                <span className="branch-node-dot" />
+                <span className="branch-node-title">{br.name}</span>
+              </div>
+              {br.description && <p className="branch-node-desc">{br.description}</p>}
+              {hasSems && (
+                <div className="branch-node-semesters">
+                  <SemesterList semesters={br.semesters} />
+                </div>
+              )}
+              {hasNested && (
+                <div className="branch-node-choice">
+                  <div className="branch-node-choice-label">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                    Далее выбор специализации
+                  </div>
+                  <BranchTree branches={nested} />
+                </div>
+              )}
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function SemesterList({ semesters }) {
   if (!semesters.length) return null
   return (
@@ -189,23 +229,52 @@ function SemesterList({ semesters }) {
         <div key={sem.number} className="semester">
           <h4>Семестр {sem.number}</h4>
           <ul className="course-list">
-            {(sem.courses || []).map((course, i) => (
-              <li key={i} className="course">
-                <div className="course-top">
-                  <span className="course-name">{course.name}</span>
-                  {course.is_elective && <span className="course-tag">по выбору</span>}
-                </div>
-                {course.description && <p className="course-desc">{course.description}</p>}
-                {course.is_elective && course.options?.length > 0 && (
-                  <div className="course-options">
-                    {course.options.map((o, j) => <span key={j} className="chip chip-sm">{o}</span>)}
-                  </div>
-                )}
-              </li>
-            ))}
+            {renderCourseItems(sem.courses || [])}
           </ul>
         </div>
       ))}
     </div>
+  )
+}
+
+function renderCourseItems(courses) {
+  const items = []
+  let i = 0
+  while (i < courses.length) {
+    if (courses[i].is_elective) {
+      let j = i
+      while (j < courses.length && courses[j].is_elective) j++
+      const runLen = j - i
+      if (runLen > 1) {
+        items.push(
+          <li key={`note-${i}`} className="course-elective-note">
+            Выберите только один из предметов по выбору
+          </li>
+        )
+      }
+      for (let k = i; k < j; k++) items.push(renderCourse(courses[k], k))
+      i = j
+    } else {
+      items.push(renderCourse(courses[i], i))
+      i++
+    }
+  }
+  return items
+}
+
+function renderCourse(course, key) {
+  return (
+    <li key={key} className="course">
+      <div className="course-top">
+        <span className="course-name">{course.name}</span>
+        {course.is_elective && <span className="course-tag">по выбору</span>}
+      </div>
+      {course.description && <p className="course-desc">{course.description}</p>}
+      {course.is_elective && course.options?.length > 0 && (
+        <div className="course-options">
+          {course.options.map((o, j) => <span key={j} className="chip chip-sm">{o}</span>)}
+        </div>
+      )}
+    </li>
   )
 }

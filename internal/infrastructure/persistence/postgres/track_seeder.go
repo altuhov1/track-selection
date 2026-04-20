@@ -51,7 +51,8 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 							Number: 6,
 							Courses: []track.Course{
 								{Name: "Численное моделирование", Description: "Численные методы", IsElective: false},
-								{Name: "Выбор направления ML", Description: "Машинное или Глубокое обучение", IsElective: true, Options: []string{"Машинное обучение", "Глубокое обучение"}},
+								{Name: "Машинное обучение", Description: "Машинное обучение", IsElective: true},
+								{Name: "Глубокое обучение", Description: "Глубокое обучение", IsElective: true},
 							},
 						},
 						{
@@ -103,6 +104,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 				Year: 5,
 				Type: "branching",
 				Branches: []track.YearBranch{
+					// ========== ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ ==========
 					{
 						Name:        "Искусственный интеллект",
 						Description: "Специализация по ИИ",
@@ -117,23 +119,109 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 								Number: 6,
 								Courses: []track.Course{
 									{Name: "Глубокое обучение", Description: "Нейронные сети", IsElective: false},
-									{Name: "Выбор подподтрека", Description: "Выберите направление", IsElective: true, Options: []string{"Обработка сигналов", "NLP", "Компьютерное зрение", "Промпт-инжиниринг"}},
+								},
+							},
+						},
+						Branches: []track.YearBranch{
+							{
+								Name:        "Обработка сигналов",
+								Description: "Подподтрек по обработке сигналов",
+								Semesters: []track.Semester{
+									{
+										Number: 6,
+										Courses: []track.Course{
+											{Name: "Обработка аудиосигналов", Description: "Аудиосигналы", IsElective: false},
+										},
+									},
+									{
+										Number: 7,
+										Courses: []track.Course{
+											{Name: "Обработка аудиосигналов", Description: "Продвинутая обработка", IsElective: false},
+										},
+									},
+									{
+										Number: 8,
+										Courses: []track.Course{
+											{Name: "Визуализация данных", Description: "Data Visualization", IsElective: false},
+										},
+									},
 								},
 							},
 							{
-								Number: 7,
-								Courses: []track.Course{
-									{Name: "Специализация по выбору", Description: "Продолжение выбранного подтрека", IsElective: true, Options: []string{"Обработка аудиосигналов", "Глубокое обучение в NLP", "Основы компьютерного зрения", "Коммуникация с ИИ"}},
+								Name:        "NLP",
+								Description: "Подподтрек по обработке естественного языка",
+								Semesters: []track.Semester{
+									{
+										Number: 6,
+										Courses: []track.Course{
+											{Name: "Глубокое обучение в NLP", Description: "Обработка естественного языка", IsElective: false},
+										},
+									},
+									{
+										Number: 7,
+										Courses: []track.Course{
+											{Name: "Глубокое обучение в NLP", Description: "Продвинутый NLP", IsElective: false},
+										},
+									},
+									{
+										Number: 8,
+										Courses: []track.Course{
+											{Name: "Генеративные нейронные сети и LLMs", Description: "GPT, GAN", IsElective: false},
+										},
+									},
 								},
 							},
 							{
-								Number: 8,
-								Courses: []track.Course{
-									{Name: "Завершающий курс", Description: "По выбранной специализации", IsElective: true, Options: []string{"Визуализация данных", "Генеративные нейронные сети и LLMs", "Федеративное обучение", "Разработка цифровых сервисов на базе ИИ"}},
+								Name:        "Компьютерное зрение",
+								Description: "Подподтрек по компьютерному зрению",
+								Semesters: []track.Semester{
+									{
+										Number: 6,
+										Courses: []track.Course{
+											{Name: "Основы компьютерного зрения", Description: "Computer Vision basics", IsElective: false},
+										},
+									},
+									{
+										Number: 7,
+										Courses: []track.Course{
+											{Name: "Основы компьютерного зрения", Description: "Продвинутое CV", IsElective: false},
+										},
+									},
+									{
+										Number: 8,
+										Courses: []track.Course{
+											{Name: "Федеративное обучение", Description: "Federated Learning", IsElective: false},
+										},
+									},
+								},
+							},
+							{
+								Name:        "Промпт-инжиниринг",
+								Description: "Подподтрек по промпт-инжинирингу",
+								Semesters: []track.Semester{
+									{
+										Number: 6,
+										Courses: []track.Course{
+											{Name: "Коммуникация с ИИ", Description: "Промпт инжиниринг", IsElective: false},
+										},
+									},
+									{
+										Number: 7,
+										Courses: []track.Course{
+											{Name: "Коммуникация с ИИ", Description: "Продвинутый промптинг", IsElective: false},
+										},
+									},
+									{
+										Number: 8,
+										Courses: []track.Course{
+											{Name: "Разработка цифровых сервисов на базе ИИ", Description: "AI сервисы", IsElective: false},
+										},
+									},
 								},
 							},
 						},
 					},
+					// ========== АНАЛИТИК ==========
 					{
 						Name:        "Аналитик",
 						Description: "Специализация по аналитике",
@@ -142,7 +230,8 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 								Number: 5,
 								Courses: []track.Course{
 									{Name: "Анализ требований, ч.1-2", Description: "Требования к ПО", IsElective: false},
-									{Name: "Выбор направления", Description: "Бизнес-анализ или Системный анализ", IsElective: true, Options: []string{"Бизнес-анализ", "Системный анализ"}},
+									{Name: "Бизнес-анализ", Description: "Бизнес-анализ", IsElective: true},
+									{Name: "Системный анализ", Description: "Системный анализ", IsElective: true},
 								},
 							},
 							{
@@ -160,6 +249,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 							},
 						},
 					},
+					// ========== РАЗРАБОТКА ПО ==========
 					{
 						Name:        "Разработка ПО",
 						Description: "Специализация по разработке",
@@ -167,25 +257,84 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 							{
 								Number: 5,
 								Courses: []track.Course{
-									{Name: "Выбор направления разработки", Description: "Выберите направление", IsElective: true, Options: []string{"Основы бэкенд-разработки на Python", "Основы фронтенд-разработки", "Моб. разработка на Android"}},
+									{Name: "Основы бэкенд-разработки на Python, ч.1-2", Description: "Бэкенд на Python", IsElective: true},
+									{Name: "Основы фронтенд-разработки, ч.1-2", Description: "Фронтенд", IsElective: true},
+									{Name: "Моб. разработка на Android, ч.1-2", Description: "Android разработка", IsElective: true},
+								},
+							},
+						},
+						Branches: []track.YearBranch{
+							{
+								Name:        "Высоконагруженные системы",
+								Description: "Подподтрек по высоконагруженным системам",
+								Semesters: []track.Semester{
+									{
+										Number: 6,
+										Courses: []track.Course{
+											{Name: "Параллельные системы", Description: "Параллельные вычисления", IsElective: false},
+										},
+									},
+									{
+										Number: 7,
+										Courses: []track.Course{
+											{Name: "Параллельные системы", Description: "Продвинутые параллельные системы", IsElective: false},
+										},
+									},
+									{
+										Number: 8,
+										Courses: []track.Course{
+											{Name: "Распределенные вычислительные системы", Description: "Distributed systems", IsElective: false},
+										},
+									},
 								},
 							},
 							{
-								Number: 6,
-								Courses: []track.Course{
-									{Name: "Выбор подподтрека", Description: "Выберите специализацию", IsElective: true, Options: []string{"Высоконагруженные системы", "Блокчейн", "Большие Данные"}},
+								Name:        "Блокчейн",
+								Description: "Подподтрек по блокчейну",
+								Semesters: []track.Semester{
+									{
+										Number: 6,
+										Courses: []track.Course{
+											{Name: "Архитектура вычислительных сетей", Description: "Сетевая архитектура", IsElective: false},
+										},
+									},
+									{
+										Number: 7,
+										Courses: []track.Course{
+											{Name: "Архитектура вычислительных сетей", Description: "Продвинутая сетевая архитектура", IsElective: false},
+										},
+									},
+									{
+										Number: 8,
+										Courses: []track.Course{
+											{Name: "Сети блокчейн", Description: "Blockchain сети", IsElective: false},
+										},
+									},
 								},
 							},
 							{
-								Number: 7,
-								Courses: []track.Course{
-									{Name: "Специализация по выбору", Description: "Продолжение выбранного подтрека", IsElective: true, Options: []string{"Параллельные системы", "Архитектура вычислительных сетей", "Большие данные"}},
-								},
-							},
-							{
-								Number: 8,
-								Courses: []track.Course{
-									{Name: "Завершающий курс", Description: "По выбранной специализации", IsElective: true, Options: []string{"Распределенные вычислительные системы", "Сети блокчейн", "Визуализация данных", "Федеративное обучение"}},
+								Name:        "Большие Данные",
+								Description: "Подподтрек по большим данным",
+								Semesters: []track.Semester{
+									{
+										Number: 6,
+										Courses: []track.Course{
+											{Name: "Большие данные", Description: "Big Data basics", IsElective: false},
+										},
+									},
+									{
+										Number: 7,
+										Courses: []track.Course{
+											{Name: "Большие данные", Description: "Продвинутые Big Data", IsElective: false},
+										},
+									},
+									{
+										Number: 8,
+										Courses: []track.Course{
+											{Name: "Федеративное обучение", Description: "Federated Learning", IsElective: false},
+											{Name: "Визуализация данных", Description: "Data Visualization", IsElective: false},
+										},
+									},
 								},
 							},
 						},
@@ -327,7 +476,8 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 								Number: 5,
 								Courses: []track.Course{
 									{Name: "Анализ требований, ч.1-2", Description: "Требования к ПО", IsElective: false},
-									{Name: "Выбор направления", Description: "Бизнес-анализ или Системный анализ", IsElective: true, Options: []string{"Бизнес-анализ", "Системный анализ"}},
+									{Name: "Бизнес-анализ", Description: "Бизнес-анализ", IsElective: true},
+									{Name: "Системный анализ", Description: "Системный анализ", IsElective: true},
 								},
 							},
 							{

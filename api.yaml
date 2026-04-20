@@ -51,23 +51,23 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: "ivan@example.com"
+                  example: ivan@example.com
                 password:
                   type: string
                   minLength: 6
-                  example: "password123"
+                  example: password123
                 role:
                   type: string
                   enum:
                     - student
                     - admin
-                  example: "student"
+                  example: student
                 first_name:
                   type: string
-                  example: "Иван"
+                  example: Иван
                 last_name:
                   type: string
-                  example: "Петров"
+                  example: Петров
       responses:
         '201':
           description: Пользователь успешно создан
@@ -78,7 +78,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "user created"
+                    example: user created
         '400':
           description: Ошибка валидации
           content:
@@ -117,10 +117,10 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: "ivan@example.com"
+                  example: ivan@example.com
                 password:
                   type: string
-                  example: "password123"
+                  example: password123
       responses:
         '200':
           description: Успешный вход
@@ -131,7 +131,7 @@ paths:
                 properties:
                   token:
                     type: string
-                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         '401':
           description: Неверные учетные данные
           content:
@@ -390,7 +390,6 @@ paths:
                   maximum: 5
                 type:
                   type: integer
-                  description: "Тип трека для фронтенда"
                 employment_prospects:
                   type: integer
                   minimum: 1
@@ -433,7 +432,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "track updated"
+                    example: track updated
         '400':
           description: Ошибка валидации
           content:
@@ -484,7 +483,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "track deleted"
+                    example: track deleted
         '401':
           description: Не авторизован
           content:
@@ -513,7 +512,7 @@ paths:
       description: |
         Возвращает список треков, отсортированных по степени соответствия предпочтениям студента (метод PROMETHEE).
         
-        **Требования для получения рекомендаций:**
+        Требования для получения рекомендаций:
         - Профессиональные цели (не пустой массив)
         - Все академические оценки (от 2 до 5)
         - Хотя бы один навык > 0
@@ -536,8 +535,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error:
-                  code: "PROFILE_NOT_COMPLETE"
-                  message: "Profile is not complete enough for recommendations"
+                  code: PROFILE_NOT_COMPLETE
+                  message: Profile is not complete enough for recommendations
         '401':
           description: Не авторизован
           content:
@@ -573,7 +572,6 @@ paths:
                 track_id:
                   type: string
                   format: uuid
-                  description: ID выбранного трека
       responses:
         '200':
           description: Трек успешно выбран
@@ -584,7 +582,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "track selected"
+                    example: track selected
         '400':
           description: Ошибка валидации
           content:
@@ -660,7 +658,6 @@ paths:
           schema:
             type: string
             format: uuid
-          description: ID трека для отмены выбора
       responses:
         '200':
           description: Выбор успешно отменен
@@ -671,7 +668,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "track unselected"
+                    example: track unselected
         '401':
           description: Не авторизован
           content:
@@ -814,103 +811,81 @@ components:
           type: string
           format: date-time
 
-    # ==================== TRACK SCHEMAS ====================
+    # ==================== TRACK SCHEMAS (RECURSIVE) ====================
     Course:
       type: object
-      description: Информация о курсе в семестре
       properties:
         name:
           type: string
-          description: Название курса
-          example: "Введение в программирование"
         description:
           type: string
-          description: Описание курса
-          example: "Основы Go, синтаксис, переменные, функции"
         is_elective:
           type: boolean
-          description: "false - обязательный курс, true - курс по выбору"
-          example: false
         options:
           type: array
-          description: "Варианты выбора (если is_elective = true)"
           items:
             type: string
-          example: ["A2", "B1", "B2"]
 
     Semester:
       type: object
-      description: Семестр с курсами
       properties:
         number:
           type: integer
-          description: Номер семестра
-          example: 1
         courses:
           type: array
-          description: Список курсов в семестре
           items:
             $ref: '#/components/schemas/Course'
 
     YearTrack:
       type: object
-      description: Трек на один год (для типа single)
       properties:
         name:
           type: string
-          description: Название трека на год
         description:
           type: string
-          description: Описание
         semesters:
           type: array
-          description: Семестры в этом году
           items:
             $ref: '#/components/schemas/Semester'
 
     YearBranch:
       type: object
-      description: Ветка выбора (для типа branching)
+      description: Ветка выбора (рекурсивная структура)
       properties:
         name:
           type: string
-          description: Название подтрека
         description:
           type: string
-          description: Описание
         semesters:
           type: array
-          description: Семестры в этом подтреке
           items:
             $ref: '#/components/schemas/Semester'
+        branches:
+          type: array
+          description: Вложенные подветки (подподтреки)
+          items:
+            $ref: '#/components/schemas/YearBranch'
 
     YearPlan:
       type: object
-      description: План на один учебный год
       properties:
         year:
           type: integer
-          description: Номер года обучения (3,4,5,6,7,8 семестр)
-          example: 3
         type:
           type: string
           enum: [single, branching]
-          description: "single - один трек, branching - выбор подтрека"
         track:
           $ref: '#/components/schemas/YearTrack'
         branches:
           type: array
-          description: Список подтреков для выбора (при type=branching)
           items:
             $ref: '#/components/schemas/YearBranch'
 
     Curriculum:
       type: object
-      description: Учебный план, разбитый по годам с возможностью выбора подтреков
       properties:
         years:
           type: array
-          description: Массив учебных лет
           items:
             $ref: '#/components/schemas/YearPlan'
 
@@ -919,14 +894,10 @@ components:
       properties:
         subject:
           type: string
-          description: Название предмета
-          example: "programming"
         min_grade:
           type: integer
           minimum: 2
           maximum: 5
-          description: Минимальная оценка для поступления
-          example: 4
 
     Track:
       type: object
@@ -952,12 +923,8 @@ components:
           type: integer
           minimum: 1
           maximum: 5
-          description: "Сложность трека (1 - легкий, 5 - очень сложный)"
-          example: 3
         type:
           type: integer
-          description: "Тип трека для фронтенда (1 - технический, 2 - аналитический и т.д.)"
-          example: 1
         employment_prospects:
           type: integer
           minimum: 1
@@ -1032,12 +999,8 @@ components:
           type: integer
           minimum: 1
           maximum: 5
-          description: "Сложность трека (1 - легкий, 5 - очень сложный)"
-          example: 3
         type:
           type: integer
-          description: "Тип трека для фронтенда"
-          example: 1
         employment_prospects:
           type: integer
           minimum: 1
@@ -1071,7 +1034,6 @@ components:
           items:
             type: integer
 
-    # ==================== RECOMMENDATIONS SCHEMAS ====================
     TrackScore:
       type: object
       properties:
@@ -1085,15 +1047,12 @@ components:
           format: float
           minimum: 0
           maximum: 1
-          description: "Итоговая оценка трека (0-1)"
         rank:
           type: integer
-          description: "Место в рейтинге"
         criteria_scores:
           type: object
           additionalProperties:
             type: number
-          description: "Оценки по каждому критерию"
 
     RecommendationsResponse:
       type: object
