@@ -29,7 +29,8 @@ export default function TrackDetailsModal({ track, onClose }) {
 
   const style = getTrackStyle(track.type)
   const difficulty = Math.max(1, Math.min(5, track.difficulty || 1))
-  const semesters = track.curriculum?.semesters || []
+  const years = track.curriculum?.years || []
+  const legacySemesters = years.length === 0 ? (track.curriculum?.semesters || []) : []
   const requirements = track.requirements || []
   const teachers = track.teachers || []
   const goals = track.professional_goals || []
@@ -116,32 +117,45 @@ export default function TrackDetailsModal({ track, onClose }) {
             </section>
           )}
 
-          {semesters.length > 0 && (
+          {(years.length > 0 || legacySemesters.length > 0) && (
             <section className="details-section">
               <h3>Учебный план</h3>
-              <div className="semesters">
-                {semesters.map((sem) => (
-                  <div key={sem.number} className="semester">
-                    <h4>Семестр {sem.number}</h4>
-                    <ul className="course-list">
-                      {(sem.courses || []).map((course, i) => (
-                        <li key={i} className="course">
-                          <div className="course-top">
-                            <span className="course-name">{course.name}</span>
-                            {course.is_elective && <span className="course-tag">по выбору</span>}
-                          </div>
-                          {course.description && <p className="course-desc">{course.description}</p>}
-                          {course.is_elective && course.options?.length > 0 && (
-                            <div className="course-options">
-                              {course.options.map((o, j) => <span key={j} className="chip chip-sm">{o}</span>)}
+              {years.length > 0 ? (
+                <div className="year-plans">
+                  {years.map((yp) => (
+                    <div key={yp.year} className="year-plan">
+                      <div className="year-plan-header">
+                        <span className="year-plan-num">{yp.year} курс</span>
+                        {yp.type === 'branching' && (
+                          <span className="year-plan-badge">выбор специализации</span>
+                        )}
+                      </div>
+                      {yp.type === 'single' && yp.track && (
+                        <div className="year-plan-body">
+                          {yp.track.name && <p className="year-track-name">{yp.track.name}</p>}
+                          {yp.track.description && <p className="year-track-desc">{yp.track.description}</p>}
+                          <SemesterList semesters={yp.track.semesters || []} />
+                        </div>
+                      )}
+                      {yp.type === 'branching' && (yp.branches || []).length > 0 && (
+                        <div className="year-branches">
+                          {(yp.branches || []).map((br, bi) => (
+                            <div key={bi} className="year-branch">
+                              <div className="year-branch-title">{br.name}</div>
+                              {br.description && <p className="year-branch-desc">{br.description}</p>}
+                              <SemesterList semesters={br.semesters || []} />
                             </div>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="semesters">
+                  <SemesterList semesters={legacySemesters} />
+                </div>
+              )}
             </section>
           )}
 
@@ -163,6 +177,35 @@ function Metric({ label, value }) {
     <div className="metric">
       <span className="metric-label">{label}</span>
       <span className="metric-value">{value}</span>
+    </div>
+  )
+}
+
+function SemesterList({ semesters }) {
+  if (!semesters.length) return null
+  return (
+    <div className="semesters">
+      {semesters.map((sem) => (
+        <div key={sem.number} className="semester">
+          <h4>Семестр {sem.number}</h4>
+          <ul className="course-list">
+            {(sem.courses || []).map((course, i) => (
+              <li key={i} className="course">
+                <div className="course-top">
+                  <span className="course-name">{course.name}</span>
+                  {course.is_elective && <span className="course-tag">по выбору</span>}
+                </div>
+                {course.description && <p className="course-desc">{course.description}</p>}
+                {course.is_elective && course.options?.length > 0 && (
+                  <div className="course-options">
+                    {course.options.map((o, j) => <span key={j} className="chip chip-sm">{o}</span>)}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   )
 }

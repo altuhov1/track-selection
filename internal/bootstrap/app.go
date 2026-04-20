@@ -46,6 +46,7 @@ type Infrastructure struct {
 	PreferencesRepo       *postgres.PreferencesRepository
 	ProfileCompletionRepo *postgres.ProfileCompletionRepository
 	TrackRepo             *postgres.TrackRepository
+	TrackSelectionRepo    *postgres.TrackSelectionRepository
 
 	// Технические сервисы
 	JwtService authDomain.JWTService
@@ -69,6 +70,11 @@ type UseCases struct {
 	CreateTrackUC  *track.CreateTrackUseCase
 	UpdateTrackUC  *track.UpdateTrackUseCase
 	DeleteTrackUC  *track.DeleteTrackUseCase
+
+	GetRecommendationsUC *studApp.GetRecommendationsUseCase
+	SelectTrackUC        *studApp.SelectTrackUseCase
+	GetSelectedTracksUC  *studApp.GetSelectedTracksUseCase
+	UnselectTrackUC      *studApp.UnselectTrackUseCase
 }
 
 func NewApp(cfg *config.ConfigApp) *App {
@@ -114,6 +120,7 @@ func (a *App) initInfrastructure() {
 	a.infra.PreferencesRepo = postgres.NewPreferencesRepository(poolPG)
 	a.infra.ProfileCompletionRepo = postgres.NewProfileCompletionRepository(poolPG)
 	a.infra.TrackRepo = postgres.NewTrackRepository(poolPG)
+	a.infra.TrackSelectionRepo = postgres.NewTrackSelectionRepository(poolPG)
 
 	// Создаем дефолтные треки
 	postgres.SeedTracks(a.rootCtx, a.infra.TrackRepo)
@@ -177,6 +184,29 @@ func (a *App) initUseCases() {
 	a.useCases.CreateTrackUC = track.NewCreateTrackUseCase(a.infra.TrackRepo)
 	a.useCases.UpdateTrackUC = track.NewUpdateTrackUseCase(a.infra.TrackRepo)
 	a.useCases.DeleteTrackUC = track.NewDeleteTrackUseCase(a.infra.TrackRepo)
+	a.useCases.GetRecommendationsUC = studApp.NewGetRecommendationsUseCase(
+		a.infra.PreferencesRepo,
+		a.infra.TrackRepo,
+		profileChecker,
+	)
+
+	a.useCases.SelectTrackUC = studApp.NewSelectTrackUseCase(
+		a.infra.TrackSelectionRepo,
+		a.infra.StudentRepo,
+		a.infra.TrackRepo,
+	)
+
+	a.useCases.GetSelectedTracksUC = studApp.NewGetSelectedTracksUseCase(
+		a.infra.TrackSelectionRepo,
+		a.infra.TrackRepo,
+		a.infra.StudentRepo,
+	)
+
+	a.useCases.UnselectTrackUC = studApp.NewUnselectTrackUseCase(
+		a.infra.TrackSelectionRepo,
+		a.infra.StudentRepo,
+	)
+
 	slog.Info("Use Cases initialized")
 }
 
@@ -192,6 +222,10 @@ func (a *App) initHTTP() {
 		a.useCases.CreateTrackUC,
 		a.useCases.UpdateTrackUC,
 		a.useCases.DeleteTrackUC,
+		a.useCases.GetRecommendationsUC,
+		a.useCases.SelectTrackUC,
+		a.useCases.GetSelectedTracksUC,
+		a.useCases.UnselectTrackUC,
 	)
 
 	router := a.setupRoutes(handler)
@@ -222,6 +256,18 @@ func (a *App) setupRoutes(handler *handlers.Handler) http.Handler {
 	r.HandleFunc("/api/new-track", middleware.WithAuth(a.infra.JwtService, handler.CreateTrack, middleware.RoleAdmin)).Methods(http.MethodPost)
 	r.HandleFunc("/api/edit-track/{id}", middleware.WithAuth(a.infra.JwtService, handler.UpdateTrack, middleware.RoleAdmin)).Methods(http.MethodPut)
 	r.HandleFunc("/api/delete-track/{id}", middleware.WithAuth(a.infra.JwtService, handler.DeleteTrack, middleware.RoleAdmin)).Methods(http.MethodDelete)
+	r.HandleFunc("/api/student/recommendations", middleware.WithAuth(a.infra.JwtService, handler.GetRecommendations, middleware.RoleAny)).Methods(http.MethodGet)
+
+	// Выбор треков
+	r.HandleFunc("/api/student/select-track",
+		middleware.WithAuth(a.infra.JwtService, handler.SelectTrack, middleware.RoleAny)).
+		Methods(http.MethodPost)
+	r.HandleFunc("/api/student/selected-tracks",
+		middleware.WithAuth(a.infra.JwtService, handler.GetSelectedTracks, middleware.RoleAny)).
+		Methods(http.MethodGet)
+	r.HandleFunc("/api/student/unselect-track/{id}",
+		middleware.WithAuth(a.infra.JwtService, handler.UnselectTrack, middleware.RoleAny)).
+		Methods(http.MethodDelete)
 
 	return middleware.ContextMiddleware(a.rootCtx, r)
 }

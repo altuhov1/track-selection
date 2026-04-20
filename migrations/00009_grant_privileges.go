@@ -66,12 +66,12 @@ func upGrantPrivileges(ctx context.Context, tx *sql.Tx) error {
 	if err != nil {
 		return err
 	}
-	// _, err = tx.ExecContext(ctx, fmt.Sprintf(`
-	// 	GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE track_teachers TO %s;
-	// `, quotedUser))
-	// if err != nil {
-	// 	return err
-	// }
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
+		GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE student_track_selections TO %s;
+	`, quotedUser))
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Granted privileges to user: %s\n", username)
 	return nil
 }
@@ -146,7 +146,16 @@ func downGrantPrivileges(ctx context.Context, tx *sql.Tx) error {
 		}
 		return err
 	}
-
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(`
+		REVOKE ALL PRIVILEGES ON TABLE student_track_selections FROM %s;
+	`, quotedUser))
+	if err != nil {
+		if strings.Contains(err.Error(), "undefined_object") {
+			fmt.Printf("Privileges already revoked for bookings: %s\n", username)
+			return nil
+		}
+		return err
+	}
 	fmt.Printf("Revoked privileges from user: %s\n", username)
 	return nil
 }

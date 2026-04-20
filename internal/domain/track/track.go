@@ -20,9 +20,31 @@ type Semester struct {
 	Courses []Course `json:"courses"`
 }
 
-// Curriculum — учебный план (разбитый по семестрам)
+// YearTrack — информация о треке на год (для типа "single")
+type YearTrack struct {
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Semesters   []Semester `json:"semesters"`
+}
+
+// YearBranch — ветка выбора (для типа "branching")
+type YearBranch struct {
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Semesters   []Semester `json:"semesters"`
+}
+
+// YearPlan — план на один год
+type YearPlan struct {
+	Year     int          `json:"year"`
+	Type     string       `json:"type"` // "single" или "branching"
+	Track    *YearTrack   `json:"track,omitempty"`
+	Branches []YearBranch `json:"branches,omitempty"`
+}
+
+// Curriculum — учебный план (по годам)
 type Curriculum struct {
-	Semesters []Semester `json:"semesters"`
+	Years []YearPlan `json:"years"`
 }
 
 // Requirement — требования к поступающему
@@ -32,7 +54,6 @@ type Requirement struct {
 }
 
 // Track — образовательный трек
-// Track — образовательный трек
 type Track struct {
 	ID                  string        `json:"id"`
 	Name                string        `json:"name"`
@@ -41,7 +62,7 @@ type Track struct {
 	Requirements        []Requirement `json:"requirements"`
 	Teachers            []string      `json:"teachers"`
 	Difficulty          int           `json:"difficulty"`
-	Type                int           `json:"type"` // ← добавить (тип трека для фронтенда)
+	Type                int           `json:"type"`
 	EmploymentProspects int           `json:"employment_prospects"`
 	AlumniReviews       int           `json:"alumni_reviews"`
 	WebLink             string        `json:"web_link"`
@@ -148,48 +169,121 @@ func (t *Track) Update(updates map[string]interface{}) {
 	t.UpdatedAt = time.Now()
 }
 
-// parseCurriculum преобразует map в Curriculum
+// parseCurriculum преобразует map в Curriculum (с поддержкой years)
 func parseCurriculum(data map[string]interface{}) Curriculum {
 	var curriculum Curriculum
 
-	if semesters, ok := data["semesters"].([]interface{}); ok {
-		for _, s := range semesters {
-			semesterMap := s.(map[string]interface{})
-			semester := Semester{}
+	// Проверяем новую структуру (с years)
+	if years, ok := data["years"].([]interface{}); ok {
+		for _, y := range years {
+			yearMap := y.(map[string]interface{})
+			yearPlan := YearPlan{}
 
-			if num, ok := semesterMap["number"].(float64); ok {
-				semester.Number = int(num)
+			if yearNum, ok := yearMap["year"].(float64); ok {
+				yearPlan.Year = int(yearNum)
+			}
+			if typeStr, ok := yearMap["type"].(string); ok {
+				yearPlan.Type = typeStr
 			}
 
-			if courses, ok := semesterMap["courses"].([]interface{}); ok {
-				for _, c := range courses {
-					courseMap := c.(map[string]interface{})
-					course := Course{}
+			// Парсим single track
+			if trackData, ok := yearMap["track"].(map[string]interface{}); ok && trackData != nil {
+				track := &YearTrack{}
+				if name, ok := trackData["name"].(string); ok {
+					track.Name = name
+				}
+				if desc, ok := trackData["description"].(string); ok {
+					track.Description = desc
+				}
+				if semesters, ok := trackData["semesters"].([]interface{}); ok {
+					track.Semesters = parseSemesters(semesters)
+				}
+				yearPlan.Track = track
+			}
 
-					if name, ok := courseMap["name"].(string); ok {
-						course.Name = name
+			// Парсим branches
+			if branches, ok := yearMap["branches"].([]interface{}); ok {
+				for _, b := range branches {
+					branchMap := b.(map[string]interface{})
+					branch := YearBranch{}
+
+					if name, ok := branchMap["name"].(string); ok {
+						branch.Name = name
 					}
-					if desc, ok := courseMap["description"].(string); ok {
-						course.Description = desc
+					if desc, ok := branchMap["description"].(string); ok {
+						branch.Description = desc
 					}
-					if isElective, ok := courseMap["is_elective"].(bool); ok {
-						course.IsElective = isElective
-					}
-					if options, ok := courseMap["options"].([]interface{}); ok {
-						for _, opt := range options {
-							if optStr, ok := opt.(string); ok {
-								course.Options = append(course.Options, optStr)
-							}
-						}
+					if semesters, ok := branchMap["semesters"].([]interface{}); ok {
+						branch.Semesters = parseSemesters(semesters)
 					}
 
-					semester.Courses = append(semester.Courses, course)
+					yearPlan.Branches = append(yearPlan.Branches, branch)
 				}
 			}
 
-			curriculum.Semesters = append(curriculum.Semesters, semester)
+			curriculum.Years = append(curriculum.Years, yearPlan)
+		}
+		return curriculum
+	}
+
+	// Поддержка старой структуры (semesters) для обратной совместимости
+	if semesters, ok := data["semesters"].([]interface{}); ok {
+		curriculum.Years = []YearPlan{
+			{
+				Year: 0,
+				Type: "single",
+				Track: &YearTrack{
+					Name:        "",
+					Description: "",
+					Semesters:   parseSemesters(semesters),
+				},
+			},
 		}
 	}
 
 	return curriculum
+}
+
+// parseSemesters парсит семестры из JSON
+func parseSemesters(semestersData []interface{}) []Semester {
+	var semesters []Semester
+
+	for _, s := range semestersData {
+		semesterMap := s.(map[string]interface{})
+		semester := Semester{}
+
+		if num, ok := semesterMap["number"].(float64); ok {
+			semester.Number = int(num)
+		}
+
+		if courses, ok := semesterMap["courses"].([]interface{}); ok {
+			for _, c := range courses {
+				courseMap := c.(map[string]interface{})
+				course := Course{}
+
+				if name, ok := courseMap["name"].(string); ok {
+					course.Name = name
+				}
+				if desc, ok := courseMap["description"].(string); ok {
+					course.Description = desc
+				}
+				if isElective, ok := courseMap["is_elective"].(bool); ok {
+					course.IsElective = isElective
+				}
+				if options, ok := courseMap["options"].([]interface{}); ok {
+					for _, opt := range options {
+						if optStr, ok := opt.(string); ok {
+							course.Options = append(course.Options, optStr)
+						}
+					}
+				}
+
+				semester.Courses = append(semester.Courses, course)
+			}
+		}
+
+		semesters = append(semesters, semester)
+	}
+
+	return semesters
 }

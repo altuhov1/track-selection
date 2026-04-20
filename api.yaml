@@ -22,6 +22,10 @@ tags:
     description: Предпочтения пользователя
   - name: Tracks
     description: Управление образовательными треками
+  - name: Recommendations
+    description: Рекомендации треков
+  - name: Selection
+    description: Выбор треков студентом
 
 paths:
   # ==================== AUTH ====================
@@ -500,6 +504,193 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ==================== RECOMMENDATIONS ====================
+  /student/recommendations:
+    get:
+      tags:
+        - Recommendations
+      summary: Получить рекомендации треков
+      description: |
+        Возвращает список треков, отсортированных по степени соответствия предпочтениям студента (метод PROMETHEE).
+        
+        **Требования для получения рекомендаций:**
+        - Профессиональные цели (не пустой массив)
+        - Все академические оценки (от 2 до 5)
+        - Хотя бы один навык > 0
+        - Стиль обучения (1, 2 или 3)
+      operationId: getRecommendations
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationsResponse'
+        '400':
+          description: Профиль не полностью заполнен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "PROFILE_NOT_COMPLETE"
+                  message: "Profile is not complete enough for recommendations"
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== TRACK SELECTION ====================
+  /student/select-track:
+    post:
+      tags:
+        - Selection
+      summary: Выбрать трек
+      description: Студент выбирает трек для изучения
+      operationId: selectTrack
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - track_id
+              properties:
+                track_id:
+                  type: string
+                  format: uuid
+                  description: ID выбранного трека
+      responses:
+        '200':
+          description: Трек успешно выбран
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "track selected"
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Студент или трек не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /student/selected-tracks:
+    get:
+      tags:
+        - Selection
+      summary: Получить выбранные треки
+      description: Возвращает список треков, выбранных студентом
+      operationId: getSelectedTracks
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tracks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Track'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /student/unselect-track/{id}:
+    delete:
+      tags:
+        - Selection
+      summary: Отменить выбор трека
+      description: Удаляет выбранный трек из списка студента
+      operationId: unselectTrack
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID трека для отмены выбора
+      responses:
+        '200':
+          description: Выбор успешно отменен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "track unselected"
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Выбор не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     ErrorResponse:
@@ -661,15 +852,67 @@ components:
           items:
             $ref: '#/components/schemas/Course'
 
-    Curriculum:
+    YearTrack:
       type: object
-      description: Учебный план, разбитый по семестрам
+      description: Трек на один год (для типа single)
       properties:
+        name:
+          type: string
+          description: Название трека на год
+        description:
+          type: string
+          description: Описание
         semesters:
           type: array
-          description: Массив семестров
+          description: Семестры в этом году
           items:
             $ref: '#/components/schemas/Semester'
+
+    YearBranch:
+      type: object
+      description: Ветка выбора (для типа branching)
+      properties:
+        name:
+          type: string
+          description: Название подтрека
+        description:
+          type: string
+          description: Описание
+        semesters:
+          type: array
+          description: Семестры в этом подтреке
+          items:
+            $ref: '#/components/schemas/Semester'
+
+    YearPlan:
+      type: object
+      description: План на один учебный год
+      properties:
+        year:
+          type: integer
+          description: Номер года обучения (3,4,5,6,7,8 семестр)
+          example: 3
+        type:
+          type: string
+          enum: [single, branching]
+          description: "single - один трек, branching - выбор подтрека"
+        track:
+          $ref: '#/components/schemas/YearTrack'
+        branches:
+          type: array
+          description: Список подтреков для выбора (при type=branching)
+          items:
+            $ref: '#/components/schemas/YearBranch'
+
+    Curriculum:
+      type: object
+      description: Учебный план, разбитый по годам с возможностью выбора подтреков
+      properties:
+        years:
+          type: array
+          description: Массив учебных лет
+          items:
+            $ref: '#/components/schemas/YearPlan'
 
     Requirement:
       type: object
@@ -827,6 +1070,38 @@ components:
           type: array
           items:
             type: integer
+
+    # ==================== RECOMMENDATIONS SCHEMAS ====================
+    TrackScore:
+      type: object
+      properties:
+        track_id:
+          type: string
+          format: uuid
+        track_name:
+          type: string
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: "Итоговая оценка трека (0-1)"
+        rank:
+          type: integer
+          description: "Место в рейтинге"
+        criteria_scores:
+          type: object
+          additionalProperties:
+            type: number
+          description: "Оценки по каждому критерию"
+
+    RecommendationsResponse:
+      type: object
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackScore'
 
   securitySchemes:
     BearerAuth:

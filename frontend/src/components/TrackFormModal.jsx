@@ -13,11 +13,29 @@ function emptyCourse() {
   return { name: '', description: '', is_elective: false, options: [] }
 }
 
-function initialSemesters(curriculum) {
-  const list = curriculum?.semesters
-  if (!Array.isArray(list) || list.length === 0) {
-    return [{ number: 1, courses: [emptyCourse()] }]
+function emptySemester(number = 1) {
+  return { number, courses: [emptyCourse()] }
+}
+
+function emptyTrack() {
+  return { name: '', description: '', semesters: [emptySemester(1)] }
+}
+
+function emptyBranch() {
+  return { name: '', description: '', semesters: [emptySemester(1)] }
+}
+
+function emptyYear(year = 3, type = 'single') {
+  return {
+    year,
+    type,
+    track: type === 'single' ? emptyTrack() : emptyTrack(),
+    branches: type === 'branching' ? [emptyBranch(), emptyBranch()] : [],
   }
+}
+
+function normalizeSemesters(list) {
+  if (!Array.isArray(list) || list.length === 0) return [emptySemester(1)]
   return list.map((s) => ({
     number: s.number ?? 1,
     courses: (s.courses || []).map((c) => ({
@@ -27,6 +45,41 @@ function initialSemesters(curriculum) {
       options: Array.isArray(c.options) ? c.options : [],
     })),
   }))
+}
+
+function initialYears(curriculum) {
+  const years = curriculum?.years
+  if (Array.isArray(years) && years.length > 0) {
+    return years.map((y) => ({
+      year: y.year ?? 3,
+      type: y.type === 'branching' ? 'branching' : 'single',
+      track: {
+        name: y.track?.name ?? '',
+        description: y.track?.description ?? '',
+        semesters: normalizeSemesters(y.track?.semesters),
+      },
+      branches: Array.isArray(y.branches) && y.branches.length > 0
+        ? y.branches.map((b) => ({
+            name: b.name ?? '',
+            description: b.description ?? '',
+            semesters: normalizeSemesters(b.semesters),
+          }))
+        : [emptyBranch(), emptyBranch()],
+    }))
+  }
+
+  // Legacy fallback: plain semesters → single year
+  const legacy = curriculum?.semesters
+  if (Array.isArray(legacy) && legacy.length > 0) {
+    return [{
+      year: 3,
+      type: 'single',
+      track: { name: '', description: '', semesters: normalizeSemesters(legacy) },
+      branches: [emptyBranch(), emptyBranch()],
+    }]
+  }
+
+  return [emptyYear(3, 'single')]
 }
 
 export default function TrackFormModal({ track, onClose, onSaved }) {
@@ -47,7 +100,7 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
   const [goals, setGoals]             = useState(new Set(track?.professional_goals || []))
   const [teachers, setTeachers]       = useState((track?.teachers || []).join(', '))
   const [requirements, setRequirements] = useState(track?.requirements || [])
-  const [semesters, setSemesters]     = useState(() => initialSemesters(track?.curriculum))
+  const [years, setYears]             = useState(() => initialYears(track?.curriculum))
 
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
@@ -83,37 +136,49 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
     setRequirements(r => r.filter((_, idx) => idx !== i))
   }
 
-  function addSemester() {
-    setSemesters(s => {
-      const used = new Set(s.map(x => x.number))
-      let next = 1
-      while (used.has(next) && next <= MAX_SEMESTERS) next++
-      return [...s, { number: next, courses: [emptyCourse()] }]
+  function updateYear(yi, patch) {
+    setYears(ys => ys.map((y, i) => i === yi ? { ...y, ...patch } : y))
+  }
+  function addYear() {
+    setYears(ys => {
+      const used = new Set(ys.map(y => y.year))
+      let next = 3
+      while (used.has(next)) next++
+      return [...ys, emptyYear(next, 'single')]
     })
   }
-  function removeSemester(i) {
-    setSemesters(s => s.filter((_, idx) => idx !== i))
+  function removeYear(yi) {
+    setYears(ys => ys.filter((_, i) => i !== yi))
   }
-  function setSemesterNumber(i, number) {
-    setSemesters(s => s.map((sem, idx) => idx === i ? { ...sem, number } : sem))
-  }
-  function addCourse(semIdx) {
-    setSemesters(s => s.map((sem, idx) =>
-      idx === semIdx ? { ...sem, courses: [...sem.courses, emptyCourse()] } : sem
-    ))
-  }
-  function updateCourse(semIdx, courseIdx, patch) {
-    setSemesters(s => s.map((sem, idx) =>
-      idx !== semIdx ? sem : {
-        ...sem,
-        courses: sem.courses.map((c, ci) => ci === courseIdx ? { ...c, ...patch } : c),
+  function setYearType(yi, newType) {
+    setYears(ys => ys.map((y, i) => {
+      if (i !== yi) return y
+      if (y.type === newType) return y
+      if (newType === 'branching') {
+        const branches = y.branches && y.branches.length > 0 ? y.branches : [emptyBranch(), emptyBranch()]
+        return { ...y, type: 'branching', branches }
       }
-    ))
+      const track = y.track && y.track.semesters?.length ? y.track : emptyTrack()
+      return { ...y, type: 'single', track }
+    }))
   }
-  function removeCourse(semIdx, courseIdx) {
-    setSemesters(s => s.map((sem, idx) =>
-      idx !== semIdx ? sem : { ...sem, courses: sem.courses.filter((_, ci) => ci !== courseIdx) }
-    ))
+  function updateYearTrack(yi, patch) {
+    setYears(ys => ys.map((y, i) => i === yi ? { ...y, track: { ...y.track, ...patch } } : y))
+  }
+  function addBranch(yi) {
+    setYears(ys => ys.map((y, i) => i === yi ? { ...y, branches: [...(y.branches || []), emptyBranch()] } : y))
+  }
+  function updateBranch(yi, bi, patch) {
+    setYears(ys => ys.map((y, i) => {
+      if (i !== yi) return y
+      return { ...y, branches: y.branches.map((b, bj) => bj === bi ? { ...b, ...patch } : b) }
+    }))
+  }
+  function removeBranch(yi, bi) {
+    setYears(ys => ys.map((y, i) => {
+      if (i !== yi) return y
+      return { ...y, branches: y.branches.filter((_, bj) => bj !== bi) }
+    }))
   }
 
   async function handleSubmit(e) {
@@ -121,25 +186,27 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
     setError('')
 
     const curriculum = {
-      semesters: semesters
-        .slice()
-        .sort((a, b) => a.number - b.number)
-        .map((sem) => ({
-          number: Number(sem.number),
-          courses: sem.courses.map((c) => {
-            const course = {
-              name: c.name.trim(),
-              description: c.description.trim(),
-              is_elective: !!c.is_elective,
-            }
-            if (c.is_elective) {
-              course.options = (c.options || [])
-                .map((o) => (typeof o === 'string' ? o.trim() : String(o)))
-                .filter(Boolean)
-            }
-            return course
-          }),
-        })),
+      years: years.map((y) => {
+        const base = { year: Number(y.year), type: y.type }
+        if (y.type === 'single') {
+          return {
+            ...base,
+            track: {
+              name: y.track.name.trim(),
+              description: y.track.description.trim(),
+              semesters: serializeSemesters(y.track.semesters),
+            },
+          }
+        }
+        return {
+          ...base,
+          branches: y.branches.map((b) => ({
+            name: b.name.trim(),
+            description: b.description.trim(),
+            semesters: serializeSemesters(b.semesters),
+          })),
+        }
+      }),
     }
 
     const payload = {
@@ -319,109 +386,129 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
 
           <section className="profile-section">
             <h3>Учебный план</h3>
-            <p className="profile-section-hint">Добавьте семестры и предметы в них</p>
+            <p className="profile-section-hint">
+              Каждый год обучения — либо один общий трек, либо выбор специализации (подтреков).
+            </p>
 
-            <div className="sem-editor">
-              {semesters.map((sem, semIdx) => (
-                <div key={semIdx} className="sem-block">
-                  <div className="sem-block-head">
+            <div className="year-editor">
+              {years.map((y, yi) => (
+                <div key={yi} className="year-edit-block">
+                  <div className="year-edit-head">
                     <label className="sem-number">
-                      <span>Семестр</span>
-                      <select
-                        value={sem.number}
-                        onChange={(e) => setSemesterNumber(semIdx, Number(e.target.value))}
-                      >
-                        {Array.from({ length: MAX_SEMESTERS }, (_, i) => i + 1).map(n => (
-                          <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
+                      <span>Год</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={y.year}
+                        onChange={(e) => updateYear(yi, { year: Number(e.target.value) })}
+                      />
                     </label>
+
+                    <div className="chip-row">
+                      <button
+                        type="button"
+                        className={`chip chip--toggle${y.type === 'single' ? ' chip--active' : ''}`}
+                        onClick={() => setYearType(yi, 'single')}
+                      >Один трек</button>
+                      <button
+                        type="button"
+                        className={`chip chip--toggle${y.type === 'branching' ? ' chip--active' : ''}`}
+                        onClick={() => setYearType(yi, 'branching')}
+                      >Выбор подтрека</button>
+                    </div>
+
                     <button
                       type="button"
                       className="btn-ghost-sm btn-ghost-sm--danger"
-                      onClick={() => removeSemester(semIdx)}
+                      onClick={() => removeYear(yi)}
                     >
-                      Удалить семестр
+                      Удалить год
                     </button>
                   </div>
 
-                  <div className="course-editor">
-                    {sem.courses.map((course, cIdx) => (
-                      <div key={cIdx} className="course-block">
-                        <div className="course-block-grid">
+                  {y.type === 'single' && (
+                    <div className="year-edit-body">
+                      <div className="form-group">
+                        <label>Название трека на год</label>
+                        <input
+                          type="text"
+                          value={y.track.name}
+                          onChange={(e) => updateYearTrack(yi, { name: e.target.value })}
+                          placeholder="Например, Базовый год"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Описание</label>
+                        <textarea
+                          rows={2}
+                          value={y.track.description}
+                          onChange={(e) => updateYearTrack(yi, { description: e.target.value })}
+                        />
+                      </div>
+                      <SemesterEditor
+                        semesters={y.track.semesters}
+                        onChange={(semesters) => updateYearTrack(yi, { semesters })}
+                      />
+                    </div>
+                  )}
+
+                  {y.type === 'branching' && (
+                    <div className="year-edit-body">
+                      <p className="profile-section-hint">Подтреки (студент выберет один)</p>
+                      {y.branches.map((b, bi) => (
+                        <div key={bi} className="branch-edit-block">
+                          <div className="branch-edit-head">
+                            <strong>Подтрек {bi + 1}</strong>
+                            <button
+                              type="button"
+                              className="btn-ghost-sm btn-ghost-sm--danger"
+                              onClick={() => removeBranch(yi, bi)}
+                            >
+                              Удалить подтрек
+                            </button>
+                          </div>
                           <div className="form-group">
-                            <label>Название предмета</label>
+                            <label>Название подтрека</label>
                             <input
                               type="text"
-                              value={course.name}
-                              onChange={(e) => updateCourse(semIdx, cIdx, { name: e.target.value })}
-                              placeholder="Например, Алгоритмы"
+                              value={b.name}
+                              onChange={(e) => updateBranch(yi, bi, { name: e.target.value })}
+                              placeholder="Например, Искусственный интеллект"
                             />
                           </div>
                           <div className="form-group">
-                            <label>Что изучается</label>
+                            <label>Описание</label>
                             <textarea
-                              value={course.description}
-                              onChange={(e) => updateCourse(semIdx, cIdx, { description: e.target.value })}
                               rows={2}
-                              placeholder="Основные темы, содержание"
+                              value={b.description}
+                              onChange={(e) => updateBranch(yi, bi, { description: e.target.value })}
                             />
                           </div>
+                          <SemesterEditor
+                            semesters={b.semesters}
+                            onChange={(semesters) => updateBranch(yi, bi, { semesters })}
+                          />
                         </div>
-
-                        <div className="course-block-foot">
-                          <label className="checkbox-inline">
-                            <input
-                              type="checkbox"
-                              checked={course.is_elective}
-                              onChange={(e) => updateCourse(semIdx, cIdx, { is_elective: e.target.checked })}
-                            />
-                            <span>Предмет по выбору</span>
-                          </label>
-
-                          {course.is_elective && (
-                            <div className="course-options-field">
-                              <label>Варианты (через запятую)</label>
-                              <input
-                                type="text"
-                                value={(course.options || []).join(', ')}
-                                onChange={(e) => updateCourse(semIdx, cIdx, {
-                                  options: e.target.value.split(',').map(o => o.trim()).filter(Boolean),
-                                })}
-                                placeholder="A2, B1, B2"
-                              />
-                            </div>
-                          )}
-
-                          <button
-                            type="button"
-                            className="btn-ghost-sm btn-ghost-sm--danger course-remove"
-                            onClick={() => removeCourse(semIdx, cIdx)}
-                          >
-                            Удалить предмет
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-block"
-                      onClick={() => addCourse(semIdx)}
-                    >
-                      + Предмет
-                    </button>
-                  </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-block"
+                        onClick={() => addBranch(yi)}
+                      >
+                        + Подтрек
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
 
               <button
                 type="button"
                 className="btn btn-outline btn-block"
-                onClick={addSemester}
-                disabled={semesters.length >= MAX_SEMESTERS}
+                onClick={addYear}
               >
-                + Семестр
+                + Год
               </button>
             </div>
           </section>
@@ -436,6 +523,167 @@ export default function TrackFormModal({ track, onClose, onSaved }) {
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+function serializeSemesters(list) {
+  return (list || [])
+    .slice()
+    .sort((a, b) => a.number - b.number)
+    .map((sem) => ({
+      number: Number(sem.number),
+      courses: sem.courses.map((c) => {
+        const course = {
+          name: c.name.trim(),
+          description: c.description.trim(),
+          is_elective: !!c.is_elective,
+        }
+        if (c.is_elective) {
+          course.options = (c.options || [])
+            .map((o) => (typeof o === 'string' ? o.trim() : String(o)))
+            .filter(Boolean)
+        }
+        return course
+      }),
+    }))
+}
+
+function SemesterEditor({ semesters, onChange }) {
+  function addSemester() {
+    const used = new Set(semesters.map(s => s.number))
+    let next = 1
+    while (used.has(next) && next <= MAX_SEMESTERS) next++
+    onChange([...semesters, emptySemester(next)])
+  }
+  function removeSemester(i) {
+    onChange(semesters.filter((_, idx) => idx !== i))
+  }
+  function setSemesterNumber(i, number) {
+    onChange(semesters.map((sem, idx) => idx === i ? { ...sem, number } : sem))
+  }
+  function addCourse(semIdx) {
+    onChange(semesters.map((sem, idx) =>
+      idx === semIdx ? { ...sem, courses: [...sem.courses, emptyCourse()] } : sem
+    ))
+  }
+  function updateCourse(semIdx, courseIdx, patch) {
+    onChange(semesters.map((sem, idx) =>
+      idx !== semIdx ? sem : {
+        ...sem,
+        courses: sem.courses.map((c, ci) => ci === courseIdx ? { ...c, ...patch } : c),
+      }
+    ))
+  }
+  function removeCourse(semIdx, courseIdx) {
+    onChange(semesters.map((sem, idx) =>
+      idx !== semIdx ? sem : { ...sem, courses: sem.courses.filter((_, ci) => ci !== courseIdx) }
+    ))
+  }
+
+  return (
+    <div className="sem-editor">
+      {semesters.map((sem, semIdx) => (
+        <div key={semIdx} className="sem-block">
+          <div className="sem-block-head">
+            <label className="sem-number">
+              <span>Семестр</span>
+              <select
+                value={sem.number}
+                onChange={(e) => setSemesterNumber(semIdx, Number(e.target.value))}
+              >
+                {Array.from({ length: MAX_SEMESTERS }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn-ghost-sm btn-ghost-sm--danger"
+              onClick={() => removeSemester(semIdx)}
+            >
+              Удалить семестр
+            </button>
+          </div>
+
+          <div className="course-editor">
+            {sem.courses.map((course, cIdx) => (
+              <div key={cIdx} className="course-block">
+                <div className="course-block-grid">
+                  <div className="form-group">
+                    <label>Название предмета</label>
+                    <input
+                      type="text"
+                      value={course.name}
+                      onChange={(e) => updateCourse(semIdx, cIdx, { name: e.target.value })}
+                      placeholder="Например, Алгоритмы"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Что изучается</label>
+                    <textarea
+                      value={course.description}
+                      onChange={(e) => updateCourse(semIdx, cIdx, { description: e.target.value })}
+                      rows={2}
+                      placeholder="Основные темы, содержание"
+                    />
+                  </div>
+                </div>
+
+                <div className="course-block-foot">
+                  <label className="checkbox-inline">
+                    <input
+                      type="checkbox"
+                      checked={course.is_elective}
+                      onChange={(e) => updateCourse(semIdx, cIdx, { is_elective: e.target.checked })}
+                    />
+                    <span>Предмет по выбору</span>
+                  </label>
+
+                  {course.is_elective && (
+                    <div className="course-options-field">
+                      <label>Варианты (через запятую)</label>
+                      <input
+                        type="text"
+                        value={(course.options || []).join(', ')}
+                        onChange={(e) => updateCourse(semIdx, cIdx, {
+                          options: e.target.value.split(',').map(o => o.trim()).filter(Boolean),
+                        })}
+                        placeholder="A2, B1, B2"
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn-ghost-sm btn-ghost-sm--danger course-remove"
+                    onClick={() => removeCourse(semIdx, cIdx)}
+                  >
+                    Удалить предмет
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="btn btn-outline btn-block"
+              onClick={() => addCourse(semIdx)}
+            >
+              + Предмет
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        className="btn btn-outline btn-block"
+        onClick={addSemester}
+        disabled={semesters.length >= MAX_SEMESTERS}
+      >
+        + Семестр
+      </button>
     </div>
   )
 }

@@ -9,9 +9,13 @@ e2e-student:
 e2e-tracks:
 	chmod +x tests/e2e_tracks.sh
 	./tests/e2e_tracks.sh
+e2e-recomm:
+	chmod +x tests/e2e_recommendations.sh
+	./tests/e2e_recommendations.sh
+e2e-recomm:
+	chmod +x tests/e2e_track_selection.sh
+	./tests/e2e_track_selection.sh
 
-frontend-install:
-	cd frontend && npm install
-
-frontend-build:
+frontend:
+	сd frontend && npm install
 	cd frontend && npm run build

@@ -14,3 +14,7 @@ export function updateUserPreferences(payload) {
     body: JSON.stringify(payload),
   })
 }
+
+export function fetchRecommendations() {
+  return apiFetch('/student/recommendations')
+}

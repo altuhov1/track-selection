@@ -3,5 +3,3 @@ psql -U backendApp -d name_db
 \dt
 SELECT * FROM students;
 ---------
-
-
