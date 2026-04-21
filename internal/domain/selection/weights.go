@@ -3,7 +3,6 @@ package selection
 type CriteriaWeights struct {
 	ProfessionalGoals float64 `json:"professional_goals"`
 	SkillsMatch       float64 `json:"skills_match"`
-	GradesMatch       float64 `json:"grades_match"`
 	Employment        float64 `json:"employment"`
 	AlumniReviews     float64 `json:"alumni_reviews"`
 	Difficulty        float64 `json:"difficulty"`
@@ -18,7 +17,6 @@ func DefaultWeights() CriteriaWeights {
 	return CriteriaWeights{
 		ProfessionalGoals: 5.0,
 		SkillsMatch:       4.0,
-		GradesMatch:       4.0,
 		Employment:        3.0,
 		AlumniReviews:     3.0,
 		Difficulty:        2.0,

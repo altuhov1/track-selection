@@ -75,10 +75,12 @@ func NewPrometheeCalculator(weights CriteriaWeights) *PrometheeCalculator {
 	return &PrometheeCalculator{weights: weights}
 }
 
+// CalculateScores вычисляет оценки для всех треков
 func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student StudentData) []TrackScore {
 	var scores []TrackScore
 
 	for _, track := range tracks {
+		// Фильтрация по требованиям (отсеиваем неподходящие треки)
 		if !p.meetsRequirements(track, student) {
 			continue
 		}
@@ -91,16 +93,13 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 		// Навыки
 		criteriaScores["skills_match"] = p.calcSkillsMatch(track, student.Skills)
 
-		// Успеваемость
-		criteriaScores["grades_match"] = p.calcGradesMatch(track.Requirements, student.Grades)
-
 		// Перспективы трудоустройства
 		criteriaScores["employment"] = float64(track.Employment) / 10.0
 
 		// Отзывы выпускников
 		criteriaScores["alumni_reviews"] = float64(track.AlumniReviews) / 10.0
 
-		// Сложность (чем ближе к среднему баллу, тем лучше)
+		// Сложность
 		criteriaScores["difficulty"] = p.calcDifficultyMatch(track.Difficulty, student.Grades)
 
 		// Сертификаты
@@ -124,10 +123,12 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 		})
 	}
 
+	// Сортировка по убыванию оценки
 	sort.Slice(scores, func(i, j int) bool {
 		return scores[i].Score > scores[j].Score
 	})
 
+	// Добавляем ранги
 	for i := range scores {
 		scores[i].Rank = i + 1
 	}
@@ -135,7 +136,9 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 	return scores
 }
 
+// meetsRequirements проверяет соответствие требованиям по оценкам и целям
 func (p *PrometheeCalculator) meetsRequirements(track PrometheeInput, student StudentData) bool {
+	// Проверка требований по оценкам
 	for _, req := range track.Requirements {
 		grade := p.getGradeBySubject(req.Subject, student.Grades)
 		if grade < req.MinGrade {
@@ -143,6 +146,7 @@ func (p *PrometheeCalculator) meetsRequirements(track PrometheeInput, student St
 		}
 	}
 
+	// Проверка профессиональных целей (хотя бы одно совпадение)
 	if len(track.ProfessionalGoals) > 0 && len(student.ProfessionalGoals) > 0 {
 		match := false
 		for _, tg := range track.ProfessionalGoals {
@@ -164,6 +168,7 @@ func (p *PrometheeCalculator) meetsRequirements(track PrometheeInput, student St
 	return true
 }
 
+// calcProfessionalGoalsMatch вычисляет совпадение профессиональных целей
 func (p *PrometheeCalculator) calcProfessionalGoalsMatch(trackGoals, studentGoals []int) float64 {
 	if len(trackGoals) == 0 || len(studentGoals) == 0 {
 		return 0
@@ -182,9 +187,12 @@ func (p *PrometheeCalculator) calcProfessionalGoalsMatch(trackGoals, studentGoal
 	return float64(matchCount) / float64(len(trackGoals))
 }
 
+// calcSkillsMatch вычисляет соответствие навыков
 func (p *PrometheeCalculator) calcSkillsMatch(track PrometheeInput, studentSkills Skills) float64 {
+	// Среднее желаемых навыков трека
 	desiredAvg := float64(track.DesiredTechSkills+track.DesiredMathSkills+track.DesiredSoftSkills) / 30.0
 
+	// Среднее навыков студента
 	studentSkillsAvg := float64(
 		studentSkills.Databases+studentSkills.SystemArchitecture+
 			studentSkills.AlgorithmicProgramming+studentSkills.PublicSpeaking+
@@ -203,25 +211,11 @@ func (p *PrometheeCalculator) calcSkillsMatch(track PrometheeInput, studentSkill
 	return match
 }
 
-func (p *PrometheeCalculator) calcGradesMatch(requirements []Requirement, studentGrades Grades) float64 {
-	if len(requirements) == 0 {
-		return 1.0
-	}
-
-	totalMatch := 0.0
-	for _, req := range requirements {
-		grade := p.getGradeBySubject(req.Subject, studentGrades)
-		if grade >= req.MinGrade {
-			totalMatch += 1.0
-		}
-	}
-
-	return totalMatch / float64(len(requirements))
-}
-
+// calcDifficultyMatch вычисляет соответствие сложности
 func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGrades Grades) float64 {
 	avgGrade := p.calculateAverageGrade(studentGrades)
 
+	// Рекомендуемая сложность на основе среднего балла
 	var recommendedDifficulty int
 	if avgGrade < 3.0 {
 		recommendedDifficulty = 1
@@ -231,6 +225,7 @@ func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGr
 		recommendedDifficulty = 4
 	}
 
+	// Чем ближе к рекомендуемой сложности, тем лучше
 	diff := math.Abs(float64(trackDifficulty - recommendedDifficulty))
 	match := 1.0 - diff/4.0
 	if match < 0 {
@@ -239,6 +234,7 @@ func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGr
 	return match
 }
 
+// calcLearningStyleMatch вычисляет соответствие стиля обучения
 func (p *PrometheeCalculator) calcLearningStyleMatch(trackStyle, studentStyle int) float64 {
 	if trackStyle == studentStyle {
 		return 1.0
@@ -246,6 +242,7 @@ func (p *PrometheeCalculator) calcLearningStyleMatch(trackStyle, studentStyle in
 	return 0.0
 }
 
+// calculateWeightedSum вычисляет взвешенную сумму
 func (p *PrometheeCalculator) calculateWeightedSum(criteriaScores map[string]float64) float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
@@ -253,7 +250,6 @@ func (p *PrometheeCalculator) calculateWeightedSum(criteriaScores map[string]flo
 	weights := map[string]float64{
 		"professional_goals":  p.weights.ProfessionalGoals,
 		"skills_match":        p.weights.SkillsMatch,
-		"grades_match":        p.weights.GradesMatch,
 		"employment":          p.weights.Employment,
 		"alumni_reviews":      p.weights.AlumniReviews,
 		"difficulty":          p.weights.Difficulty,
@@ -277,6 +273,7 @@ func (p *PrometheeCalculator) calculateWeightedSum(criteriaScores map[string]flo
 	return weightedSum / totalWeight
 }
 
+// getGradeBySubject возвращает оценку по названию предмета
 func (p *PrometheeCalculator) getGradeBySubject(subject string, grades Grades) int {
 	switch subject {
 	case "informatics":
@@ -302,6 +299,7 @@ func (p *PrometheeCalculator) getGradeBySubject(subject string, grades Grades) i
 	}
 }
 
+// calculateAverageGrade вычисляет средний балл студента
 func (p *PrometheeCalculator) calculateAverageGrade(grades Grades) float64 {
 	sum := float64(grades.Informatics + grades.Programming + grades.ForeignLanguage +
 		grades.Physics + grades.AIG + grades.MathAnalysis +

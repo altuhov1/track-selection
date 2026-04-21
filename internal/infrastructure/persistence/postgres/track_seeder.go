@@ -22,7 +22,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 	mathCurriculum := track.Curriculum{
 		Years: []track.YearPlan{
 			{
-				Year: 3,
+				Year: 2,
 				Type: "single",
 				Track: &track.YearTrack{
 					Name:        "Математический трек",
@@ -79,7 +79,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 	engCurriculum := track.Curriculum{
 		Years: []track.YearPlan{
 			{
-				Year: 3,
+				Year: 2,
 				Type: "single",
 				Track: &track.YearTrack{
 					Name:        "Инженерный трек - базовый",
@@ -101,7 +101,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 				},
 			},
 			{
-				Year: 5,
+				Year: 3,
 				Type: "branching",
 				Branches: []track.YearBranch{
 					// ========== ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ ==========
@@ -348,7 +348,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 	hardwareCurriculum := track.Curriculum{
 		Years: []track.YearPlan{
 			{
-				Year: 3,
+				Year: 2,
 				Type: "single",
 				Track: &track.YearTrack{
 					Name:        "АПО - базовый",
@@ -370,7 +370,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 				},
 			},
 			{
-				Year: 5,
+				Year: 3,
 				Type: "branching",
 				Branches: []track.YearBranch{
 					{
@@ -443,7 +443,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 	testingCurriculum := track.Curriculum{
 		Years: []track.YearPlan{
 			{
-				Year: 3,
+				Year: 2,
 				Type: "single",
 				Track: &track.YearTrack{
 					Name:        "Тестирование - базовый",
@@ -465,7 +465,7 @@ func SeedTracks(ctx context.Context, repo *TrackRepository) {
 				},
 			},
 			{
-				Year: 5,
+				Year: 3,
 				Type: "branching",
 				Branches: []track.YearBranch{
 					{
