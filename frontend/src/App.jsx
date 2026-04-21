@@ -21,7 +21,7 @@ export default function App() {
   const [modalTab, setModalTab]   = useState(null)     // null | 'login' | 'register'
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen]   = useState(false)
-  const [theme, setTheme]         = useState(() => localStorage.getItem('theme_pref') || 'system')
+  const [theme, setTheme]         = useState(() => localStorage.getItem('theme_pref') || 'light')
 
   useEffect(() => {
     applyTheme(theme)

@@ -77,6 +77,24 @@ input, select { font-family: inherit; }
   background: transparent;
   color: var(--text-secondary);
 }
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-btn);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-icon:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
 .btn-ghost:hover { background: var(--bg-page); color: var(--text-primary); }
 
 /* ============================================================
@@ -786,6 +804,8 @@ input, select { font-family: inherit; }
 [data-theme="dark"] .btn-primary   { color: #111827; }
 [data-theme="dark"] .btn-outline   { border-color: var(--accent); color: var(--accent); }
 [data-theme="dark"] .btn-outline:hover { background: var(--accent-light); }
+[data-theme="dark"] .btn-icon { color: var(--text-secondary); }
+[data-theme="dark"] .btn-icon:hover { background: var(--accent-light); color: var(--accent); }
 [data-theme="dark"] .btn-ghost:hover { background: var(--bg-page); }
 [data-theme="dark"] .results-count { border-color: var(--border); }
 [data-theme="dark"] .footer-tag    { background: var(--bg-page); border-color: var(--border); }
