@@ -1156,13 +1156,19 @@ input, select { font-family: inherit; }
   border-radius: 8px;
 }
 .course-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.course-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.course-name {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  overflow-wrap: break-word; word-break: break-word; hyphens: auto; min-width: 0;
+}
 .course-tag {
   font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px;
   padding: 2px 8px; border-radius: 12px;
   background: #DBEAFE; color: #1E40AF;
 }
-.course-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
+.course-desc {
+  font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;
+  overflow-wrap: break-word; word-break: break-word; hyphens: auto;
+}
 .course-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .course-elective-note {
   font-size: 12px;
@@ -1324,10 +1330,12 @@ input, select { font-family: inherit; }
 }
 .branch-node-title {
   font-size: 14px; font-weight: 600; color: var(--text-primary);
+  overflow-wrap: break-word; word-break: break-word; hyphens: auto; min-width: 0;
 }
 .branch-node-desc {
   font-size: 13px; color: var(--text-secondary);
   margin: 0 0 10px; line-height: 1.4;
+  overflow-wrap: break-word; word-break: break-word; hyphens: auto;
 }
 .branch-node-semesters { margin-top: 8px; }
 .branch-node-choice { margin-top: 12px; }
