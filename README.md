@@ -202,7 +202,7 @@ track-selection/
 ### Через Docker Compose
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/altuhov1/track-selection.git
 cd track-selection
 cp .env.example .env
 # Отредактировать .env, надо ввести ADMIN_SECRET_KEY
@@ -211,21 +211,6 @@ docker-compose up --build
 ```
 
 Приложение будет доступно по адресу `http://localhost:<NGINX_PORT>`.
-
-### Разработка фронтенда
-
-```bash
-cd frontend
-npm install
-npm run dev      # Dev-сервер с проксированием /api → :8080
-```
-
-```bash
-cd frontend
-npm run build    # Сборка → /static (раздаётся Nginx)
-```
-
----
 
 ## Миграции
 
@@ -265,19 +250,9 @@ docker compose run --rm migrate version
 
 **Value Objects** — каждый идентификатор (`StudentID`, `AdminID`) и общий тип (`Email`) реализованы как value object: инкапсулируют валидацию, неизменяемы, сравниваются по значению, а не по ссылке.
 
-```go
-// Email — value object с валидацией на уровне домена
-type Email struct{ value string }
-
-func NewEmail(email string) (Email, error) { /* валидация */ }
-func (e Email) Equals(other Email) bool   { return strings.EqualFold(e.value, other.value) }
-```
-
 **Domain Events** — агрегаты публикуют события через интерфейс `DomainEvent` (`domain/shared/events`). Конкретные события: `StudentRegisteredEvent`, `ProfileCompletedEvent`, `AdminRegisteredEvent`. Это позволяет реагировать на изменения состояния без прямых зависимостей между контекстами.
 
-**Repository interfaces** — репозитории (`StudentRepository`, `TrackRepository`, `TrackSelectionRepository` и др.) объявлены как интерфейсы внутри домена. Инфраструктурный слой (`infrastructure/persistence/postgres`) предоставляет конкретные реализации — домен не знает ни о PostgreSQL, ни о pgx.
-
-**Domain Service** — `ProfileChecker` (`domain/student`) — доменный сервис, инкапсулирующий инвариант «профиль считается заполненным»: все оценки от 2 до 5, хотя бы один навык > 0, указан стиль обучения и хотя бы одна профессиональная цель. Используется как в use case обновления предпочтений, так и в use case получения рекомендаций.
+**Repository interfaces** — репозитории (`StudentRepository`, `TrackRepository`, `TrackSelectionRepository` и др.) объявлены как интерфейсы внутри домена.
 
 ### Event Bus
 
