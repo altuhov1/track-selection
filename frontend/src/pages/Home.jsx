@@ -198,13 +198,13 @@ export default function Home({ user, onOpenProfile, onOpenLogin }) {
               </button>
 
               <button
-                className="action-card action-card--square"
+                className={`action-card action-card--square${selectedTrack ? ' action-card--selected' : ''}`}
                 onClick={() => setPickerOpen(true)}
               >
                 <div className="action-card-visual action-card-visual--pick">
                   <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
                     <rect x="10" y="10" width="52" height="52" rx="14" fill="#fff" opacity=".4"/>
-                    <path d="M20 38 L30 48 L52 24" stroke="#4B5563" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M20 38 L30 48 L52 24" stroke="#1F2937" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
                 <div className="action-card-body">

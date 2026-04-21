@@ -24,7 +24,6 @@ export default function Header({ user, onOpenLogin, onOpenRegister, onLogout, on
       <div className="container">
         <div className="header-inner">
           <a href="/" className="logo" aria-label="На главную">
-            <div className="logo-icon">ТВ</div>
             <span className="logo-text">ТрекВыбор</span>
           </a>
 

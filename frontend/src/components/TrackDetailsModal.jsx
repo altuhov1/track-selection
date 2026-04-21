@@ -100,20 +100,20 @@ export default function TrackDetailsModal({ track, onClose }) {
           {goals.length > 0 && (
             <section className="details-section">
               <h3>Подходит для целей</h3>
-              <div className="chip-row">
+              <ul className="details-text-list">
                 {goals.map((g) => (
-                  <span key={g} className="chip">{GOAL_LABEL[g] || `Цель ${g}`}</span>
+                  <li key={g}>{GOAL_LABEL[g] || `Цель ${g}`}</li>
                 ))}
-              </div>
+              </ul>
             </section>
           )}
 
           {teachers.length > 0 && (
             <section className="details-section">
               <h3>Преподаватели</h3>
-              <div className="chip-row">
-                {teachers.map((t, i) => <span key={i} className="chip">{t}</span>)}
-              </div>
+              <ul className="details-text-list">
+                {teachers.map((t, i) => <li key={i}>{t}</li>)}
+              </ul>
             </section>
           )}
 
@@ -125,7 +125,7 @@ export default function TrackDetailsModal({ track, onClose }) {
                   {years.map((yp) => (
                     <div key={yp.year} className="year-plan">
                       <div className="year-plan-header">
-                        <span className="year-plan-num">{yp.year} курс</span>
+                        <span className="year-plan-num">{computeCourseLabel(yp)}</span>
                         {yp.type === 'branching' && (
                           <span className="year-plan-badge">выбор специализации</span>
                         )}
@@ -171,6 +171,31 @@ function Metric({ label, value }) {
       <span className="metric-value">{value}</span>
     </div>
   )
+}
+
+function collectSemesterNumbers(yp) {
+  const nums = []
+  if (yp?.type === 'single') {
+    for (const s of yp.track?.semesters || []) nums.push(s.number || 1)
+  }
+  if (yp?.type === 'branching') {
+    const walk = (branches) => {
+      for (const br of branches || []) {
+        for (const s of br.semesters || []) nums.push(s.number || 1)
+        walk(getNestedBranches(br))
+      }
+    }
+    walk(yp.branches)
+  }
+  return nums
+}
+
+function computeCourseLabel(yp) {
+  const nums = collectSemesterNumbers(yp)
+  if (!nums.length) return `${yp.year} курс`
+  const minC = Math.ceil(Math.min(...nums) / 2)
+  const maxC = Math.ceil(Math.max(...nums) / 2)
+  return minC === maxC ? `${minC} курс` : `${minC}-${maxC} курс`
 }
 
 const BRANCH_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0891B2']

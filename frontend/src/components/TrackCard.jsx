@@ -24,12 +24,6 @@ export default function TrackCard({ track, onOpen, isAdmin, onEdit, onDelete }) 
     >
       <div className="card-visual" style={{ background: style.color }}>
         <div dangerouslySetInnerHTML={{ __html: style.icon(style.shapeColor) }} />
-        <span className="card-badge difficulty">
-          <span className="difficulty-stars" aria-hidden="true">
-            {'★'.repeat(difficulty)}{'☆'.repeat(5 - difficulty)}
-          </span>
-          <span className="sr-only">Сложность {difficulty} из 5</span>
-        </span>
       </div>
 
       <div className="card-body">
