@@ -1026,11 +1026,15 @@ input, select { font-family: inherit; }
   padding: 24px 28px;
 }
 .modal--wide .modal-header { margin-bottom: 16px; }
-.details-body,
-.profile-form {
+.details-body {
   overflow-y: auto;
   padding-right: 4px;
   margin-right: -4px;
+}
+.profile-form {
+  overflow-y: auto;
+  padding-right: 17px;
+  margin-right: -17px;
 }
 .charts {
   overflow-y: auto;
@@ -1998,4 +2002,13 @@ input, select { font-family: inherit; }
   .header-nav .btn { padding: 7px 10px; font-size: 13px; }
   .btn-icon { width: 32px; height: 32px; }
   .btn-icon svg { width: 18px; height: 18px; }
+}
+
+@media (max-width: 360px) {
+  .container { padding: 0 10px; }
+  .header-nav { gap: 4px; }
+  .header-nav .btn { padding: 6px 8px; font-size: 12px; }
+  .btn-icon { width: 28px; height: 28px; }
+  .btn-icon svg { width: 16px; height: 16px; }
+  .logo-text { font-size: 15px; }
 }
