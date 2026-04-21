@@ -1985,4 +1985,9 @@ input, select { font-family: inherit; }
 
 @media (max-width: 479px) {
   .footer-links { grid-template-columns: 1fr; }
+  .container { padding: 0 14px; }
+  .header-nav { gap: 6px; }
+  .header-nav .btn { padding: 7px 10px; font-size: 13px; }
+  .btn-icon { width: 32px; height: 32px; }
+  .btn-icon svg { width: 18px; height: 18px; }
 }
