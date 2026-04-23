@@ -38,9 +38,7 @@ type StudentData struct {
 	Grades            Grades
 	Skills            Skills
 	LearningStyle     int
-	DesiredTechSkills int
-	DesiredMathSkills int
-	DesiredSoftSkills int
+	Certificates      int
 }
 
 type Grades struct {
@@ -75,12 +73,10 @@ func NewPrometheeCalculator(weights CriteriaWeights) *PrometheeCalculator {
 	return &PrometheeCalculator{weights: weights}
 }
 
-// CalculateScores вычисляет оценки для всех треков
 func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student StudentData) []TrackScore {
 	var scores []TrackScore
 
 	for _, track := range tracks {
-		// Фильтрация по требованиям (отсеиваем неподходящие треки)
 		if !p.meetsRequirements(track, student) {
 			continue
 		}
@@ -89,9 +85,6 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 
 		// Профессиональные цели
 		criteriaScores["professional_goals"] = p.calcProfessionalGoalsMatch(track.ProfessionalGoals, student.ProfessionalGoals)
-
-		// Навыки
-		criteriaScores["skills_match"] = p.calcSkillsMatch(track, student.Skills)
 
 		// Перспективы трудоустройства
 		criteriaScores["employment"] = float64(track.Employment) / 10.0
@@ -103,15 +96,15 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 		criteriaScores["difficulty"] = p.calcDifficultyMatch(track.Difficulty, student.Grades)
 
 		// Сертификаты
-		criteriaScores["certificates"] = float64(track.HasCertificates)
+		criteriaScores["certificates"] = p.calcCertificatesScore(track.HasCertificates, student.Certificates)
 
 		// Стиль обучения
 		criteriaScores["learning_style"] = p.calcLearningStyleMatch(track.LearningStyle, student.LearningStyle)
 
 		// Желаемые навыки
-		criteriaScores["desired_tech_skills"] = float64(track.DesiredTechSkills) / 10.0
-		criteriaScores["desired_math_skills"] = float64(track.DesiredMathSkills) / 10.0
-		criteriaScores["desired_soft_skills"] = float64(track.DesiredSoftSkills) / 10.0
+		criteriaScores["desired_tech_skills"] = p.calcTechSkillsMatch(track.DesiredTechSkills, student.Grades, student.Skills)
+		criteriaScores["desired_math_skills"] = p.calcMathSkillsMatch(track.DesiredMathSkills, student.Grades, student.Skills)
+		criteriaScores["desired_soft_skills"] = p.calcSoftSkillsMatch(track.DesiredSoftSkills, student.Grades, student.Skills)
 
 		totalScore := p.calculateWeightedSum(criteriaScores)
 
@@ -123,12 +116,10 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 		})
 	}
 
-	// Сортировка по убыванию оценки
 	sort.Slice(scores, func(i, j int) bool {
 		return scores[i].Score > scores[j].Score
 	})
 
-	// Добавляем ранги
 	for i := range scores {
 		scores[i].Rank = i + 1
 	}
@@ -136,17 +127,13 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 	return scores
 }
 
-// meetsRequirements проверяет соответствие требованиям по оценкам и целям
 func (p *PrometheeCalculator) meetsRequirements(track PrometheeInput, student StudentData) bool {
-	// Проверка требований по оценкам
 	for _, req := range track.Requirements {
 		grade := p.getGradeBySubject(req.Subject, student.Grades)
 		if grade < req.MinGrade {
 			return false
 		}
 	}
-
-	// Проверка профессиональных целей (хотя бы одно совпадение)
 	if len(track.ProfessionalGoals) > 0 && len(student.ProfessionalGoals) > 0 {
 		match := false
 		for _, tg := range track.ProfessionalGoals {
@@ -187,35 +174,9 @@ func (p *PrometheeCalculator) calcProfessionalGoalsMatch(trackGoals, studentGoal
 	return float64(matchCount) / float64(len(trackGoals))
 }
 
-// calcSkillsMatch вычисляет соответствие навыков
-func (p *PrometheeCalculator) calcSkillsMatch(track PrometheeInput, studentSkills Skills) float64 {
-	// Среднее желаемых навыков трека
-	desiredAvg := float64(track.DesiredTechSkills+track.DesiredMathSkills+track.DesiredSoftSkills) / 30.0
-
-	// Среднее навыков студента
-	studentSkillsAvg := float64(
-		studentSkills.Databases+studentSkills.SystemArchitecture+
-			studentSkills.AlgorithmicProgramming+studentSkills.PublicSpeaking+
-			studentSkills.Testing+studentSkills.Analytics+
-			studentSkills.MachineLearning+studentSkills.OSKnowledge+
-			studentSkills.ResearchProjects) / 90.0
-
-	if studentSkillsAvg == 0 {
-		return desiredAvg
-	}
-
-	match := 1.0 - math.Abs(desiredAvg-studentSkillsAvg)
-	if match < 0 {
-		match = 0
-	}
-	return match
-}
-
-// calcDifficultyMatch вычисляет соответствие сложности
 func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGrades Grades) float64 {
 	avgGrade := p.calculateAverageGrade(studentGrades)
 
-	// Рекомендуемая сложность на основе среднего балла
 	var recommendedDifficulty int
 	if avgGrade < 3.0 {
 		recommendedDifficulty = 1
@@ -225,7 +186,6 @@ func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGr
 		recommendedDifficulty = 4
 	}
 
-	// Чем ближе к рекомендуемой сложности, тем лучше
 	diff := math.Abs(float64(trackDifficulty - recommendedDifficulty))
 	match := 1.0 - diff/4.0
 	if match < 0 {
@@ -234,7 +194,6 @@ func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGr
 	return match
 }
 
-// calcLearningStyleMatch вычисляет соответствие стиля обучения
 func (p *PrometheeCalculator) calcLearningStyleMatch(trackStyle, studentStyle int) float64 {
 	if trackStyle == studentStyle {
 		return 1.0
@@ -242,14 +201,46 @@ func (p *PrometheeCalculator) calcLearningStyleMatch(trackStyle, studentStyle in
 	return 0.0
 }
 
-// calculateWeightedSum вычисляет взвешенную сумму
+func (p *PrometheeCalculator) calcCertificatesScore(trackHasCerts, studentWantsCerts int) float64 {
+	if studentWantsCerts == 1 && trackHasCerts == 0 {
+		return 0.0
+	}
+	return 1.0
+}
+
+func skillsMatchScore(studentAvg float64, trackDesired int) float64 {
+	if trackDesired == 0 {
+		return 1.0
+	}
+	score := studentAvg / float64(trackDesired)
+	if score > 1.0 {
+		return 1.0
+	}
+	return score
+}
+
+func (p *PrometheeCalculator) calcMathSkillsMatch(trackDesired int, grades Grades, skills Skills) float64 {
+	avg := float64(grades.AIG+grades.MathAnalysis+grades.DiscreteMath+skills.MachineLearning) / 4.0
+	return skillsMatchScore(avg, trackDesired)
+}
+
+func (p *PrometheeCalculator) calcTechSkillsMatch(trackDesired int, grades Grades, skills Skills) float64 {
+	avg := float64(grades.Programming+grades.Informatics+grades.AlgorithmsDataStructures+grades.Databases+
+		skills.SystemArchitecture+skills.AlgorithmicProgramming+skills.Testing+skills.OSKnowledge+skills.Databases) / 9.0
+	return skillsMatchScore(avg, trackDesired)
+}
+
+func (p *PrometheeCalculator) calcSoftSkillsMatch(trackDesired int, grades Grades, skills Skills) float64 {
+	avg := float64(skills.PublicSpeaking+skills.Analytics+grades.ForeignLanguage) / 3.0
+	return skillsMatchScore(avg, trackDesired)
+}
+
 func (p *PrometheeCalculator) calculateWeightedSum(criteriaScores map[string]float64) float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
 
 	weights := map[string]float64{
 		"professional_goals":  p.weights.ProfessionalGoals,
-		"skills_match":        p.weights.SkillsMatch,
 		"employment":          p.weights.Employment,
 		"alumni_reviews":      p.weights.AlumniReviews,
 		"difficulty":          p.weights.Difficulty,
@@ -273,7 +264,6 @@ func (p *PrometheeCalculator) calculateWeightedSum(criteriaScores map[string]flo
 	return weightedSum / totalWeight
 }
 
-// getGradeBySubject возвращает оценку по названию предмета
 func (p *PrometheeCalculator) getGradeBySubject(subject string, grades Grades) int {
 	switch subject {
 	case "informatics":
@@ -299,7 +289,6 @@ func (p *PrometheeCalculator) getGradeBySubject(subject string, grades Grades) i
 	}
 }
 
-// calculateAverageGrade вычисляет средний балл студента
 func (p *PrometheeCalculator) calculateAverageGrade(grades Grades) float64 {
 	sum := float64(grades.Informatics + grades.Programming + grades.ForeignLanguage +
 		grades.Physics + grades.AIG + grades.MathAnalysis +

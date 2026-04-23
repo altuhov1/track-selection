@@ -70,10 +70,8 @@ func (uc *GetRecommendationsUseCase) Execute(ctx context.Context, userID string)
 			OSKnowledge:            prefs.Skills.OSKnowledge,
 			ResearchProjects:       prefs.Skills.ResearchProjects,
 		},
-		LearningStyle:     prefs.LearningStyle,
-		DesiredTechSkills: prefs.Skills.Databases,
-		DesiredMathSkills: prefs.Skills.Analytics,
-		DesiredSoftSkills: prefs.Skills.PublicSpeaking,
+		LearningStyle: prefs.LearningStyle,
+		Certificates:  prefs.Certificates,
 	}
 
 	var prometheeInputs []selection.PrometheeInput
