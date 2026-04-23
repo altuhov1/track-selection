@@ -3,9 +3,11 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"track-selection/internal/domain/auth"
+	domErr "track-selection/internal/domain/shared/errors"
 )
 
 const (
@@ -32,7 +34,14 @@ func WithAuth(JwtService auth.JWTService, handlerFn func(http.ResponseWriter, *h
 		token, err := JwtService.ValidateToken(tokenString)
 
 		if err != nil {
-			writeJSONError(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid token")
+			switch {
+			case errors.Is(err, domErr.ErrTokenExpired):
+				writeJSONError(w, http.StatusUnauthorized, "TOKEN_EXPIRED", "token has expired")
+			case errors.Is(err, domErr.ErrInvalidToken):
+				writeJSONError(w, http.StatusUnauthorized, "INVALID_TOKEN", "invalid token")
+			default:
+				writeJSONError(w, http.StatusUnauthorized, "UNAUTHORIZED", err.Error())
+			}
 			return
 		}
 

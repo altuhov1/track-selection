@@ -118,10 +118,14 @@ func (t *Track) Update(updates map[string]interface{}) {
 		}
 	}
 	if val, ok := updates["requirements"]; ok {
-		t.Requirements = val.([]Requirement)
+		if raw, ok := val.([]interface{}); ok {
+			t.Requirements = parseRequirements(raw)
+		}
 	}
 	if val, ok := updates["teachers"]; ok {
-		t.Teachers = val.([]string)
+		if raw, ok := val.([]interface{}); ok {
+			t.Teachers = parseStringSlice(raw)
+		}
 	}
 	if val, ok := updates["difficulty"]; ok {
 		t.Difficulty = int(val.(float64))
@@ -154,7 +158,9 @@ func (t *Track) Update(updates map[string]interface{}) {
 		t.DesiredSoftSkills = int(val.(float64))
 	}
 	if val, ok := updates["professional_goals"]; ok {
-		t.ProfessionalGoals = val.([]int)
+		if raw, ok := val.([]interface{}); ok {
+			t.ProfessionalGoals = parseIntSlice(raw)
+		}
 	}
 
 	t.UpdatedAt = time.Now()
@@ -213,6 +219,45 @@ func parseCurriculum(data map[string]interface{}) Curriculum {
 	}
 
 	return curriculum
+}
+
+func parseRequirements(data []interface{}) []Requirement {
+	result := make([]Requirement, 0, len(data))
+	for _, r := range data {
+		m, ok := r.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		req := Requirement{}
+		if s, ok := m["subject"].(string); ok {
+			req.Subject = s
+		}
+		if g, ok := m["min_grade"].(float64); ok {
+			req.MinGrade = int(g)
+		}
+		result = append(result, req)
+	}
+	return result
+}
+
+func parseStringSlice(data []interface{}) []string {
+	result := make([]string, 0, len(data))
+	for _, v := range data {
+		if s, ok := v.(string); ok {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+func parseIntSlice(data []interface{}) []int {
+	result := make([]int, 0, len(data))
+	for _, v := range data {
+		if n, ok := v.(float64); ok {
+			result = append(result, int(n))
+		}
+	}
+	return result
 }
 
 func parseBranches(branchesData []interface{}) []YearBranch {
