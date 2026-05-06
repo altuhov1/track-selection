@@ -11,6 +11,8 @@ type TrackScore struct {
 	Score          float64            `json:"score"`
 	Rank           int                `json:"rank"`
 	CriteriaScores map[string]float64 `json:"criteria_scores"`
+	PositiveFlow   float64            `json:"positive_flow"`
+	NegativeFlow   float64            `json:"negative_flow"`
 }
 
 type PrometheeInput struct {
@@ -65,66 +67,245 @@ type Skills struct {
 	ResearchProjects       int
 }
 
+// PreferenceFunctionType — 6 generalized criterion functions from Brans & Vincke.
+type PreferenceFunctionType int
+
+const (
+	UsualCriterion    PreferenceFunctionType = 1
+	UShapeCriterion   PreferenceFunctionType = 2
+	VShapeCriterion   PreferenceFunctionType = 3
+	LevelCriterion    PreferenceFunctionType = 4
+	LinearCriterion   PreferenceFunctionType = 5
+	GaussianCriterion PreferenceFunctionType = 6
+)
+
+// CriterionParams describes how a single criterion contributes to pairwise preference.
+// Q — indifference threshold, P — strict preference threshold, S — Gaussian spread.
+type CriterionParams struct {
+	Type PreferenceFunctionType
+	Q    float64
+	P    float64
+	S    float64
+}
+
+// preference returns P_j(d) ∈ [0, 1] for a given deviation d = g_j(a) − g_j(b).
+func (cp CriterionParams) preference(d float64) float64 {
+	if d <= 0 {
+		return 0
+	}
+	switch cp.Type {
+	case UsualCriterion:
+		return 1
+	case UShapeCriterion:
+		if d > cp.Q {
+			return 1
+		}
+		return 0
+	case VShapeCriterion:
+		if d >= cp.P {
+			return 1
+		}
+		if cp.P == 0 {
+			return 1
+		}
+		return d / cp.P
+	case LevelCriterion:
+		if d > cp.P {
+			return 1
+		}
+		if d > cp.Q {
+			return 0.5
+		}
+		return 0
+	case LinearCriterion:
+		if d > cp.P {
+			return 1
+		}
+		if d > cp.Q {
+			return (d - cp.Q) / (cp.P - cp.Q)
+		}
+		return 0
+	case GaussianCriterion:
+		if cp.S == 0 {
+			return 1
+		}
+		return 1 - math.Exp(-(d*d)/(2*cp.S*cp.S))
+	}
+	return 0
+}
+
+// criterionOrder is the canonical, deterministic order of criteria used when
+// building the decision matrix. Map iteration is non-deterministic in Go, so
+// PROMETHEE flow computations must walk criteria in a fixed sequence.
+var criterionOrder = []string{
+	"professional_goals",
+	"employment",
+	"alumni_reviews",
+	"difficulty",
+	"certificates",
+	"learning_style",
+	"desired_tech_skills",
+	"desired_math_skills",
+	"desired_soft_skills",
+}
+
+// DefaultCriterionParams returns reasonable preference functions assuming all
+// criterion values are normalised to [0, 1] with "higher is better".
+// Continuous fits use V-shape (linear up to full deviation); binary 0/1
+// criteria use the Usual criterion.
+func DefaultCriterionParams() map[string]CriterionParams {
+	vshape := CriterionParams{Type: VShapeCriterion, P: 1.0}
+	usual := CriterionParams{Type: UsualCriterion}
+	return map[string]CriterionParams{
+		"professional_goals":  vshape,
+		"employment":          vshape,
+		"alumni_reviews":      vshape,
+		"difficulty":          vshape,
+		"certificates":        usual,
+		"learning_style":      usual,
+		"desired_tech_skills": vshape,
+		"desired_math_skills": vshape,
+		"desired_soft_skills": vshape,
+	}
+}
+
 type PrometheeCalculator struct {
-	weights CriteriaWeights
+	weights         CriteriaWeights
+	criterionParams map[string]CriterionParams
 }
 
 func NewPrometheeCalculator(weights CriteriaWeights) *PrometheeCalculator {
-	return &PrometheeCalculator{weights: weights}
+	return &PrometheeCalculator{
+		weights:         weights,
+		criterionParams: DefaultCriterionParams(),
+	}
 }
 
-func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student StudentData) []TrackScore {
-	var scores []TrackScore
+func NewPrometheeCalculatorWithParams(weights CriteriaWeights, params map[string]CriterionParams) *PrometheeCalculator {
+	return &PrometheeCalculator{weights: weights, criterionParams: params}
+}
 
+// CalculateScores runs PROMETHEE II:
+//  1. Filter tracks that fail hard requirements.
+//  2. Build a decision matrix (track × criterion), each cell ∈ [0, 1], maximised.
+//  3. For each ordered pair (a, b), aggregate per-criterion preferences into
+//     π(a, b) = Σ w_j · P_j(d_j(a, b)) / Σ w_j.
+//  4. Compute Φ⁺, Φ⁻, Φ; rank by Φ descending.
+func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student StudentData) []TrackScore {
+	type candidate struct {
+		input    PrometheeInput
+		criteria map[string]float64
+	}
+
+	var candidates []candidate
 	for _, track := range tracks {
 		if !p.meetsRequirements(track, student) {
 			continue
 		}
-
-		criteriaScores := make(map[string]float64)
-
-		// Профессиональные цели
-		criteriaScores["professional_goals"] = p.calcProfessionalGoalsMatch(track.ProfessionalGoals, student.ProfessionalGoals)
-
-		// Перспективы трудоустройства
-		criteriaScores["employment"] = float64(track.Employment) / 10.0
-
-		// Отзывы выпускников
-		criteriaScores["alumni_reviews"] = float64(track.AlumniReviews) / 10.0
-
-		// Сложность
-		criteriaScores["difficulty"] = p.calcDifficultyMatch(track.Difficulty, student.Grades)
-
-		// Сертификаты
-		criteriaScores["certificates"] = p.calcCertificatesScore(track.HasCertificates, student.Certificates)
-
-		// Стиль обучения
-		criteriaScores["learning_style"] = p.calcLearningStyleMatch(track.LearningStyle, student.LearningStyle)
-
-		// Желаемые навыки
-		criteriaScores["desired_tech_skills"] = p.calcTechSkillsMatch(track.DesiredTechSkills, student.Grades, student.Skills)
-		criteriaScores["desired_math_skills"] = p.calcMathSkillsMatch(track.DesiredMathSkills, student.Grades, student.Skills)
-		criteriaScores["desired_soft_skills"] = p.calcSoftSkillsMatch(track.DesiredSoftSkills, student.Grades, student.Skills)
-
-		totalScore := p.calculateWeightedSum(criteriaScores)
-
-		scores = append(scores, TrackScore{
-			TrackID:        track.TrackID,
-			TrackName:      track.TrackName,
-			Score:          totalScore,
-			CriteriaScores: criteriaScores,
+		candidates = append(candidates, candidate{
+			input:    track,
+			criteria: p.evaluateCriteria(track, student),
 		})
 	}
 
-	sort.Slice(scores, func(i, j int) bool {
+	n := len(candidates)
+	if n == 0 {
+		return nil
+	}
+
+	weightMap := p.weightMap()
+	totalWeight := 0.0
+	for _, name := range criterionOrder {
+		totalWeight += weightMap[name]
+	}
+
+	pi := make([][]float64, n)
+	for i := range pi {
+		pi[i] = make([]float64, n)
+	}
+
+	if totalWeight > 0 {
+		for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
+				if i == j {
+					continue
+				}
+				var aggregated float64
+				for _, name := range criterionOrder {
+					w := weightMap[name]
+					if w == 0 {
+						continue
+					}
+					d := candidates[i].criteria[name] - candidates[j].criteria[name]
+					aggregated += w * p.criterionParams[name].preference(d)
+				}
+				pi[i][j] = aggregated / totalWeight
+			}
+		}
+	}
+
+	scores := make([]TrackScore, n)
+	for i := 0; i < n; i++ {
+		var phiPlus, phiMinus float64
+		if n > 1 {
+			for j := 0; j < n; j++ {
+				if i == j {
+					continue
+				}
+				phiPlus += pi[i][j]
+				phiMinus += pi[j][i]
+			}
+			phiPlus /= float64(n - 1)
+			phiMinus /= float64(n - 1)
+		}
+		scores[i] = TrackScore{
+			TrackID:        candidates[i].input.TrackID,
+			TrackName:      candidates[i].input.TrackName,
+			Score:          phiPlus - phiMinus,
+			CriteriaScores: candidates[i].criteria,
+			PositiveFlow:   phiPlus,
+			NegativeFlow:   phiMinus,
+		}
+	}
+
+	sort.SliceStable(scores, func(i, j int) bool {
 		return scores[i].Score > scores[j].Score
 	})
-
 	for i := range scores {
 		scores[i].Rank = i + 1
 	}
-
 	return scores
+}
+
+// evaluateCriteria builds the decision-matrix row for one track. Every value
+// is normalised to [0, 1] and oriented so larger = better, which is what
+// the PROMETHEE deviation d = g(a) − g(b) expects.
+func (p *PrometheeCalculator) evaluateCriteria(track PrometheeInput, student StudentData) map[string]float64 {
+	return map[string]float64{
+		"professional_goals":  p.calcProfessionalGoalsMatch(track.ProfessionalGoals, student.ProfessionalGoals),
+		"employment":          float64(track.Employment) / 10.0,
+		"alumni_reviews":      float64(track.AlumniReviews) / 10.0,
+		"difficulty":          p.calcDifficultyMatch(track.Difficulty, student.Grades),
+		"certificates":        p.calcCertificatesScore(track.HasCertificates, student.Certificates),
+		"learning_style":      p.calcLearningStyleMatch(track.LearningStyle, student.LearningStyle),
+		"desired_tech_skills": p.calcTechSkillsMatch(track.DesiredTechSkills, student.Grades, student.Skills),
+		"desired_math_skills": p.calcMathSkillsMatch(track.DesiredMathSkills, student.Grades, student.Skills),
+		"desired_soft_skills": p.calcSoftSkillsMatch(track.DesiredSoftSkills, student.Grades, student.Skills),
+	}
+}
+
+func (p *PrometheeCalculator) weightMap() map[string]float64 {
+	return map[string]float64{
+		"professional_goals":  p.weights.ProfessionalGoals,
+		"employment":          p.weights.Employment,
+		"alumni_reviews":      p.weights.AlumniReviews,
+		"difficulty":          p.weights.Difficulty,
+		"certificates":        p.weights.Certificates,
+		"learning_style":      p.weights.LearningStyle,
+		"desired_tech_skills": p.weights.DesiredTechSkills,
+		"desired_math_skills": p.weights.DesiredMathSkills,
+		"desired_soft_skills": p.weights.DesiredSoftSkills,
+	}
 }
 
 func (p *PrometheeCalculator) meetsRequirements(track PrometheeInput, student StudentData) bool {
@@ -151,16 +332,13 @@ func (p *PrometheeCalculator) meetsRequirements(track PrometheeInput, student St
 			return false
 		}
 	}
-
 	return true
 }
 
-// calcProfessionalGoalsMatch вычисляет совпадение профессиональных целей
 func (p *PrometheeCalculator) calcProfessionalGoalsMatch(trackGoals, studentGoals []int) float64 {
 	if len(trackGoals) == 0 || len(studentGoals) == 0 {
 		return 0
 	}
-
 	matchCount := 0
 	for _, tg := range trackGoals {
 		for _, sg := range studentGoals {
@@ -170,13 +348,11 @@ func (p *PrometheeCalculator) calcProfessionalGoalsMatch(trackGoals, studentGoal
 			}
 		}
 	}
-
 	return float64(matchCount) / float64(len(trackGoals))
 }
 
 func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGrades Grades) float64 {
 	avgGrade := p.calculateAverageGrade(studentGrades)
-
 	var recommendedDifficulty int
 	if avgGrade < 3.0 {
 		recommendedDifficulty = 1
@@ -185,7 +361,6 @@ func (p *PrometheeCalculator) calcDifficultyMatch(trackDifficulty int, studentGr
 	} else {
 		recommendedDifficulty = 4
 	}
-
 	diff := math.Abs(float64(trackDifficulty - recommendedDifficulty))
 	match := 1.0 - diff/4.0
 	if match < 0 {
@@ -233,35 +408,6 @@ func (p *PrometheeCalculator) calcTechSkillsMatch(trackDesired int, grades Grade
 func (p *PrometheeCalculator) calcSoftSkillsMatch(trackDesired int, grades Grades, skills Skills) float64 {
 	avg := float64(skills.PublicSpeaking+skills.Analytics+grades.ForeignLanguage) / 3.0
 	return skillsMatchScore(avg, trackDesired)
-}
-
-func (p *PrometheeCalculator) calculateWeightedSum(criteriaScores map[string]float64) float64 {
-	totalWeight := 0.0
-	weightedSum := 0.0
-
-	weights := map[string]float64{
-		"professional_goals":  p.weights.ProfessionalGoals,
-		"employment":          p.weights.Employment,
-		"alumni_reviews":      p.weights.AlumniReviews,
-		"difficulty":          p.weights.Difficulty,
-		"certificates":        p.weights.Certificates,
-		"learning_style":      p.weights.LearningStyle,
-		"desired_tech_skills": p.weights.DesiredTechSkills,
-		"desired_math_skills": p.weights.DesiredMathSkills,
-		"desired_soft_skills": p.weights.DesiredSoftSkills,
-	}
-
-	for key, score := range criteriaScores {
-		if weight, ok := weights[key]; ok {
-			weightedSum += score * weight
-			totalWeight += weight
-		}
-	}
-
-	if totalWeight == 0 {
-		return 0
-	}
-	return weightedSum / totalWeight
 }
 
 func (p *PrometheeCalculator) getGradeBySubject(subject string, grades Grades) int {
