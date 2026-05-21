@@ -65,8 +65,6 @@ type Skills struct {
 	ResearchProjects       int
 }
 
-// PreferenceFunctionType — 6 generalized criteria from Brans & Vincke,
-// see Papathanasiou & Ploskas, Fig. 3.1 (p. 60).
 type PreferenceFunctionType int
 
 const (
@@ -85,7 +83,6 @@ type CriterionParams struct {
 	S    float64
 }
 
-// preference returns P_j(d) for deviation d = g_j(a) − g_j(b).
 func (cp CriterionParams) preference(d float64) float64 {
 	if d <= 0 {
 		return 0
@@ -131,8 +128,6 @@ func (cp CriterionParams) preference(d float64) float64 {
 	return 0
 }
 
-// criterionOrder fixes the iteration order of criteria — Go map iteration is
-// non-deterministic, and PROMETHEE pairwise comparisons must be reproducible.
 var criterionOrder = []string{
 	"professional_goals",
 	"employment",
@@ -145,9 +140,6 @@ var criterionOrder = []string{
 	"desired_soft_skills",
 }
 
-// DefaultCriterionParams: all decision-matrix values are normalised to [0, 1]
-// with "higher is better". Continuous criteria use V-shape with p=1 (preference
-// grows linearly with the gap, saturates at 1). Binary 0/1 criteria use Usual.
 func DefaultCriterionParams() map[string]CriterionParams {
 	vshape := CriterionParams{Type: VShapeCriterion, P: 1.0}
 	usual := CriterionParams{Type: UsualCriterion}
@@ -180,19 +172,6 @@ func NewPrometheeCalculatorWithParams(weights CriteriaWeights, params map[string
 	return &PrometheeCalculator{weights: weights, criterionParams: params}
 }
 
-// CalculateScores implements PROMETHEE II per Papathanasiou & Ploskas, Ch. 3:
-//  1. Filter alternatives that fail hard requirements.
-//  2. Build decision matrix g_j(a) ∈ [0, 1] (eq. 3.1, table 3.2).
-//  3. For each pair (a, b), aggregate per-criterion preferences:
-//       π(a, b) = Σ_j w_j · P_j(g_j(a) − g_j(b)),  Σ w_j = 1   (eq. 3.6).
-//  4. Positive flow Φ⁺(a) = (1/(m−1)) Σ_x π(a, x)            (eq. 3.8).
-//     Negative flow Φ⁻(a) = (1/(m−1)) Σ_x π(x, a)            (eq. 3.9).
-//     Net flow      Φ(a)  = Φ⁺(a) − Φ⁻(a) ∈ [−1, 1]          (eq. 3.11).
-//  5. Rank by Φ descending (PROMETHEE II rule, eq. 3.12).
-//
-// Score is reported as (Φ + 1) / 2 ∈ [0, 1] — a monotone transform of net
-// flow that preserves the PROMETHEE II ranking exactly while keeping the
-// number positive (a "match percentage", consistent with the prior API).
 func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student StudentData) []TrackScore {
 	type candidate struct {
 		input    PrometheeInput
@@ -283,9 +262,6 @@ func (p *PrometheeCalculator) CalculateScores(tracks []PrometheeInput, student S
 	return scores
 }
 
-// evaluateCriteria builds one row of the decision matrix. Every value is
-// normalised to [0, 1], maximised — the orientation PROMETHEE expects when
-// computing d = g(a) − g(b).
 func (p *PrometheeCalculator) evaluateCriteria(track PrometheeInput, student StudentData) map[string]float64 {
 	return map[string]float64{
 		"professional_goals":  p.calcProfessionalGoalsMatch(track.ProfessionalGoals, student.ProfessionalGoals),
@@ -300,7 +276,6 @@ func (p *PrometheeCalculator) evaluateCriteria(track PrometheeInput, student Stu
 	}
 }
 
-// normalizedWeights returns w_j with Σ w_j = 1, as required by eq. (3.2).
 func (p *PrometheeCalculator) normalizedWeights() map[string]float64 {
 	raw := map[string]float64{
 		"professional_goals":  p.weights.ProfessionalGoals,
